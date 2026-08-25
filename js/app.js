@@ -14,11 +14,14 @@ async function initApp() {
     return;
   }
   updateUserUI();
-  await loadAllData();
-  await loadSchoolSettings();
-  applyModuleVisibility();
+  if (profile.school_id) {
+    await loadAllData();
+    await loadSchoolSettings();
+    applyModuleVisibility();
+  }
   handleUrlParams();
-  navigateTo('dashboard');
+  const startPage = (!profile.school_id && ['super_admin','admin'].includes(profile.role)) ? 'admin' : 'dashboard';
+  navigateTo(startPage);
 }
 
 function showSetupRequired() {
@@ -78,10 +81,13 @@ function updateUserUI() {
 
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = ['super_admin','admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin'].includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin','admin','super_admin'].includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.student-only').forEach(el => {
-    const isVisible = profile.role === 'student' || ['teacher','school_admin','admin','super_admin'].includes(profile.role);
+    const isVisible = profile.role === 'student' || ['teacher','school_admin'].includes(profile.role);
     el.style.display = isVisible ? '' : 'none';
+  });
+  document.querySelectorAll('.has-school').forEach(el => {
+    el.style.display = profile.school_id ? '' : 'none';
   });
 }
 
@@ -164,6 +170,14 @@ function navigateTo(page) {
 }
 
 function renderPage(page) {
+  const schoolPages = ['dashboard','timetable','homework','grades','exams','tests','calendar','subjects','substitution','messages','attendance','absences'];
+  if (schoolPages.includes(page) && !profile.school_id) {
+    const el = document.getElementById('page-' + page);
+    if (el) {
+      el.querySelector('.page-body').innerHTML = '<div class="empty-state"><h3>Kein Schulzugang</h3><p>Du bist keiner Schule zugeordnet.</p></div>';
+    }
+    return;
+  }
   switch (page) {
     case 'dashboard': renderDashboard(); break;
     case 'admin': renderAdminPanel(); break;

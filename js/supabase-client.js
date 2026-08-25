@@ -62,6 +62,7 @@ async function updateProfile(userId, updates) {
 }
 
 async function getSchool(schoolId) {
+  if (!schoolId) return null;
   const { data, error } = await _sb
     .from('schools').select('*').eq('id', schoolId).single();
   if (error) return null;
@@ -71,6 +72,7 @@ async function getSchool(schoolId) {
 async function dbGet(table, filters = {}) {
   let query = _sb.from(table).select('*');
   Object.entries(filters).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === 'null') return;
     if (Array.isArray(value)) query = query.in(key, value);
     else query = query.eq(key, value);
   });

@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#F97316">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SchoolPlanner">
@@ -57,8 +58,8 @@
           </a>
         </div>
 
-        <!-- Main menu (role-dependent) -->
-        <div class="sidebar-section">
+        <!-- Main menu (requires school) -->
+        <div class="sidebar-section has-school">
           <div class="sidebar-section-label">Hauptmenü</div>
           <a class="sidebar-link active" data-page="dashboard" onclick="navigateTo('dashboard')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -91,7 +92,7 @@
           </a>
         </div>
 
-        <div class="sidebar-section">
+        <div class="sidebar-section has-school">
           <div class="sidebar-section-label">Verwaltung</div>
           <a class="sidebar-link mod-attendance teacher-only" data-page="attendance" onclick="navigateTo('attendance')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -103,7 +104,7 @@
           </a>
         </div>
 
-        <div class="sidebar-section">
+        <div class="sidebar-section has-school">
           <div class="sidebar-section-label">Schule</div>
           <a class="sidebar-link mod-subjects" data-page="subjects" onclick="navigateTo('subjects')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>

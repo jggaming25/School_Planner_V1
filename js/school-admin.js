@@ -1,5 +1,4 @@
 let schoolUsers = [];
-let schoolModules = {};
 
 async function loadSchoolAdminData() {
   if (!currentProfile?.school_id) return;
