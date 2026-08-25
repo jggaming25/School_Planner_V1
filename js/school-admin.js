@@ -24,6 +24,7 @@ function renderSchoolAdminTab(tab) {
   else if (tab === 'classes') renderSchoolClassesList(el);
   else if (tab === 'modules') renderSchoolModules(el);
   else if (tab === 'codes') renderAccessCodesInfo(el);
+  else if (tab === 'settings') renderSchoolSettings(el);
 }
 
 function renderSchoolUsersList(el) {
@@ -283,4 +284,88 @@ async function deleteClass(id) {
   showToast('Gelöscht', 'success');
   await loadSchoolAdminData();
   renderSchoolAdminTab('classes');
+}
+
+async function renderSchoolSettings(el) {
+  const school = await getSchool(currentProfile.school_id);
+  const settings = school?.school_settings || {};
+  const maxPeriods = settings.max_periods || 8;
+  const periodTimes = settings.period_times || {};
+  const startTime = settings.start_time || '08:00';
+  const endTime = settings.end_time || '15:00';
+
+  let periodsTableHtml = '';
+  for (let i = 1; i <= maxPeriods; i++) {
+    const pt = periodTimes[i] || {};
+    periodsTableHtml += `<tr>
+      <td style="font-weight:600;text-align:center;width:60px">${i}</td>
+      <td><input type="time" class="input-field sub-period-start" value="${pt.start || ''}" style="width:140px"></td>
+      <td><input type="time" class="input-field sub-period-end" value="${pt.end || ''}" style="width:140px"></td>
+    </tr>`;
+  }
+
+  el.innerHTML = `
+    <div class="card mb-16">
+      <div class="card-header"><h3>Allgemeine Einstellungen</h3></div>
+      <div class="grid grid-3">
+        <div class="input-group"><label>Max. Stunden pro Tag</label><input type="number" class="input-field" id="settings-max-periods" min="1" max="20" value="${maxPeriods}" onchange="onMaxPeriodsChange(this.value)"></div>
+        <div class="input-group"><label>Schulstart</label><input type="time" class="input-field" id="settings-start-time" value="${startTime}"></div>
+        <div class="input-group"><label>Schulende</label><input type="time" class="input-field" id="settings-end-time" value="${endTime}"></div>
+      </div>
+      <button class="btn btn-primary btn-sm mt-8" onclick="saveSchoolSettings()">Speichern</button>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Stundenzeiten</h3><span class="badge badge-blue" id="period-count-badge">${maxPeriods} Stunden</span></div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th style="width:60px;text-align:center">Std.</th><th>Beginn</th><th>Ende</th></tr></thead>
+          <tbody id="school-settings-periods-body">${periodsTableHtml}</tbody>
+        </table>
+      </div>
+      <button class="btn btn-primary btn-sm mt-16" onclick="saveSchoolSettings()">Zeiten speichern</button>
+    </div>`;
+}
+
+function onMaxPeriodsChange(val) {
+  const maxPeriods = parseInt(val) || 8;
+  const body = document.getElementById('school-settings-periods-body');
+  if (!body) return;
+  const currentRows = body.querySelectorAll('tr');
+  const currentMax = currentRows.length;
+  const badge = document.getElementById('period-count-badge');
+  if (badge) badge.textContent = maxPeriods + ' Stunden';
+
+  if (maxPeriods > currentMax) {
+    for (let i = currentMax + 1; i <= maxPeriods; i++) {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td style="font-weight:600;text-align:center;width:60px">${i}</td>
+        <td><input type="time" class="input-field sub-period-start" value="" style="width:140px"></td>
+        <td><input type="time" class="input-field sub-period-end" value="" style="width:140px"></td>`;
+      body.appendChild(row);
+    }
+  } else if (maxPeriods < currentMax) {
+    for (let i = currentMax; i > maxPeriods; i--) {
+      body.lastElementChild?.remove();
+    }
+  }
+}
+
+async function saveSchoolSettings() {
+  const maxPeriods = parseInt(document.getElementById('settings-max-periods').value) || 8;
+  const startTime = document.getElementById('settings-start-time').value || '08:00';
+  const endTime = document.getElementById('settings-end-time').value || '15:00';
+
+  const periodTimes = {};
+  const rows = document.getElementById('school-settings-periods-body')?.querySelectorAll('tr') || [];
+  rows.forEach((row, idx) => {
+    const startInput = row.querySelector('.sub-period-start');
+    const endInput = row.querySelector('.sub-period-end');
+    if (startInput?.value || endInput?.value) {
+      periodTimes[idx + 1] = { start: startInput?.value || '', end: endInput?.value || '' };
+    }
+  });
+
+  const settings = { max_periods: maxPeriods, start_time: startTime, end_time: endTime, period_times: periodTimes };
+  await _sb.from('schools').update({ school_settings: settings }).eq('id', currentProfile.school_id);
+  showToast('Einstellungen gespeichert!', 'success');
 }

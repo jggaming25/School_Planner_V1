@@ -55,14 +55,31 @@ async function saveHomework() {
   const title = document.getElementById('hw-title').value;
   const due = document.getElementById('hw-due').value;
   if (!title || !due) { showToast('Titel & Fälligkeitsdatum nötig', 'error'); return; }
-  await dbInsert('homework', {
+  const classId = document.getElementById('hw-class').value || null;
+  const hwRecord = {
     school_id: profile.school_id, user_id: currentUser.id, subject_id: document.getElementById('hw-subject').value || null,
-    class_id: document.getElementById('hw-class').value || null, title, description: document.getElementById('hw-desc').value,
+    class_id: classId, title, description: document.getElementById('hw-desc').value,
     due_date: due, priority: document.getElementById('hw-priority').value, completed: false
-  });
+  };
+  const inserted = await dbInsert('homework', hwRecord);
   closeModal('homework-modal');
   showToast('Hausaufgabe erstellt!', 'success');
   document.getElementById('hw-title').value = '';
+
+  if (classId && typeof notifyUsers === 'function') {
+    const subject = subjects.find(s => s.id === hwRecord.subject_id);
+    const classObj = schoolClasses.find(c => c.id === classId);
+    const students = await dbGet('profiles', { school_id: profile.school_id, role: 'student', class_name: classObj?.name });
+    if (students.length > 0) {
+      await notifyUsers(
+        profile.school_id,
+        'Neue Hausaufgabe',
+        `${escapeHtml(subject?.name || 'Fach')}: ${escapeHtml(title)} - fällig am ${formatDate(due)}`,
+        'homework',
+        students.map(s => s.id)
+      );
+    }
+  }
   renderHomework();
 }
 

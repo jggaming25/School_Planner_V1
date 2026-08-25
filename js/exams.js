@@ -37,14 +37,31 @@ async function saveExam() {
   const title = document.getElementById('ex-title').value;
   const date = document.getElementById('ex-date').value;
   if (!title || !date) { showToast('Titel & Datum nötig', 'error'); return; }
-  await dbInsert('exams', {
+  const classId = document.getElementById('ex-class').value || null;
+  const exRecord = {
     school_id: profile.school_id, user_id: currentUser.id, subject_id: document.getElementById('ex-subject').value || null,
-    class_id: document.getElementById('ex-class').value || null, title, exam_date: date,
+    class_id: classId, title, exam_date: date,
     duration_minutes: parseInt(document.getElementById('ex-duration').value) || null,
     room: document.getElementById('ex-room').value, topic: document.getElementById('ex-topic').value
-  });
+  };
+  await dbInsert('exams', exRecord);
   closeModal('exam-modal');
   showToast('Klausur erstellt!', 'success');
+
+  if (classId && typeof notifyUsers === 'function') {
+    const subject = subjects.find(s => s.id === exRecord.subject_id);
+    const classObj = schoolClasses.find(c => c.id === classId);
+    const students = await dbGet('profiles', { school_id: profile.school_id, role: 'student', class_name: classObj?.name });
+    if (students.length > 0) {
+      await notifyUsers(
+        profile.school_id,
+        'Neue Klassenarbeit',
+        `${escapeHtml(subject?.name || 'Fach')}: ${escapeHtml(title)} am ${formatDate(date)}`,
+        'exam',
+        students.map(s => s.id)
+      );
+    }
+  }
   renderExams();
 }
 

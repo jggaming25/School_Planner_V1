@@ -195,6 +195,23 @@ async function saveTest() {
 
 async function toggleTestActive(testId, active) {
   await _sb.from('tests').update({ is_active: active, start_time: active ? new Date().toISOString() : null }).eq('id', testId);
+  if (active) {
+    const test = testsData.find(t => t.id === testId);
+    if (test && typeof notifyUsers === 'function') {
+      const classObj = schoolClasses.find(c => c.id === test.class_id);
+      const subject = subjects.find(s => s.id === test.subject_id);
+      const students = await dbGet('profiles', { school_id: currentProfile.school_id, role: 'student', class_name: classObj?.name });
+      if (students.length > 0) {
+        await notifyUsers(
+          currentProfile.school_id,
+          'Test gestartet',
+          `${escapeHtml(subject?.name || 'Fach')}: ${escapeHtml(test.title)} ist jetzt aktiv! Code: ${escapeHtml(test.access_code)}`,
+          'test',
+          students.map(s => s.id)
+        );
+      }
+    }
+  }
   showToast(active ? 'Test gestartet!' : 'Test gestoppt', 'success');
   renderTests();
 }

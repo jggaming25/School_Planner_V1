@@ -15,6 +15,7 @@ async function initApp() {
   }
   updateUserUI();
   await loadAllData();
+  await loadSchoolSettings();
   applyModuleVisibility();
   handleUrlParams();
   navigateTo('dashboard');
@@ -78,6 +79,10 @@ function updateUserUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = ['super_admin','admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin','admin','super_admin'].includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.student-only').forEach(el => {
+    const isVisible = profile.role === 'student' || ['teacher','school_admin','admin','super_admin'].includes(profile.role);
+    el.style.display = isVisible ? '' : 'none';
+  });
 }
 
 async function loadAllData() {
@@ -173,6 +178,8 @@ function renderPage(page) {
     case 'substitution': renderSubstitution(); break;
     case 'messages': renderMessages(); break;
     case 'settings': renderSettings(); break;
+    case 'attendance': renderAttendance(); break;
+    case 'absences': renderAbsenceOrApprovals(); break;
   }
 }
 
@@ -191,3 +198,11 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 async function handleLogout() { await signOut(); }
 
 document.addEventListener('DOMContentLoaded', () => { initTheme(); initApp(); });
+
+function renderAbsenceOrApprovals() {
+  if (profile.role === 'student') {
+    renderAbsenceRequests();
+  } else {
+    renderAbsenceApprovals();
+  }
+}

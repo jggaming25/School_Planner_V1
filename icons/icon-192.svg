@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="url(#bg)"/>
+  <!-- Book -->
+  <g transform="translate(96,88)">
+    <rect x="-30" y="-24" width="60" height="48" rx="4" fill="none" stroke="#F97316" stroke-width="4"/>
+    <line x1="0" y1="-24" x2="0" y2="24" stroke="#F97316" stroke-width="3"/>
+    <rect x="-26" y="-20" width="22" height="3" rx="1.5" fill="#F97316" opacity="0.7"/>
+    <rect x="-26" y="-12" width="18" height="3" rx="1.5" fill="#F97316" opacity="0.5"/>
+    <rect x="-26" y="-4" width="22" height="3" rx="1.5" fill="#F97316" opacity="0.7"/>
+    <rect x="4" y="-20" width="22" height="3" rx="1.5" fill="#F97316" opacity="0.7"/>
+    <rect x="4" y="-12" width="16" height="3" rx="1.5" fill="#F97316" opacity="0.5"/>
+    <rect x="4" y="-4" width="22" height="3" rx="1.5" fill="#F97316" opacity="0.7"/>
+    <!-- Pencil -->
+    <g transform="translate(18,-18) rotate(35)">
+      <rect x="-3" y="-20" width="6" height="28" rx="1" fill="#FB923C"/>
+      <polygon points="-3,-20 0,-28 3,-20" fill="#F97316"/>
+      <rect x="-3" y="8" width="6" height="4" fill="#F59E0B"/>
+      <polygon points="-2,12 2,12 0,16" fill="#F59E0B"/>
+    </g>
+  </g>
+  <!-- Text -->
+  <text x="96" y="142" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="20" fill="#F97316" letter-spacing="1">SCHOOL</text>
+  <text x="96" y="160" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="500" font-size="12" fill="#94A3B8" letter-spacing="3">PLANNER</text>
+</svg>

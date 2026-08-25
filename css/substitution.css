@@ -5,3 +5,25 @@
   background: var(--bg-hover);
   border-radius: var(--radius-sm);
 }
+
+.sub-teacher-row {
+  transition: all var(--transition);
+}
+.sub-teacher-row:hover {
+  background: var(--bg-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+#sub-main-content .card {
+  overflow: visible;
+}
+
+@media (max-width: 900px) {
+  #sub-main-content .grid[style*="grid-template-columns: 1fr 380px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.tt-period-label span {
+  line-height: 1.2;
+}

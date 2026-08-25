@@ -46,5 +46,18 @@ async function saveEvent() {
   closeModal('event-modal');
   showToast('Event erstellt!', 'success');
   document.getElementById('ev-title').value = '';
+
+  if (profile.school_id && typeof notifyUsers === 'function') {
+    const allStudents = await dbGet('profiles', { school_id: profile.school_id, role: 'student' });
+    if (allStudents.length > 0) {
+      await notifyUsers(
+        profile.school_id,
+        'Neues Kalender-Event',
+        `${escapeHtml(title)} am ${formatDate(date)}`,
+        'event',
+        allStudents.map(s => s.id)
+      );
+    }
+  }
   renderCalendar();
 }

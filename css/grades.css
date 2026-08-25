@@ -10,3 +10,30 @@
   border-radius: 4px;
   transition: width 0.5s ease;
 }
+
+.grade-grid-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.grade-grid-scroll table {
+  min-width: 600px;
+}
+.grade-grid-scroll td,
+.grade-grid-scroll th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.grade-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.notif-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
