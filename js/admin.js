@@ -76,13 +76,13 @@ async function approveRequest(requestId) {
     });
     const adminEmail = request.contact_email;
     const tempPass = 'Admin_' + Math.random().toString(36).substring(2, 10);
-    const { data: authData } = await supabase.auth.signUp({
+    const { data: authData } = await _sb.auth.signUp({
       email: adminEmail,
       password: tempPass,
       options: { data: { role: 'school_admin', school_id: school.id } }
     });
     if (authData?.user) {
-      await supabase.from('profiles').upsert({
+      await _sb.from('profiles').upsert({
         id: authData.user.id,
         school_id: school.id,
         email: adminEmail,

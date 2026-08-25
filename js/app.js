@@ -46,7 +46,7 @@ async function completeSetup() {
   }
   try {
     if (password && password.length >= 6) {
-      await supabase.auth.updateUser({ password });
+      await _sb.auth.updateUser({ password });
     }
     await updateProfile(currentUser.id, {
       full_name: document.getElementById('setup-name').value,
@@ -58,7 +58,7 @@ async function completeSetup() {
       force_email: false
     });
     if (currentUser.email !== email) {
-      await supabase.auth.updateUser({ email });
+      await _sb.auth.updateUser({ email });
     }
     showToast('Profil eingerichtet!', 'success');
     location.reload();

@@ -132,7 +132,7 @@ function renderSchoolModules(el) {
 
 async function toggleModule(key, enabled) {
   schoolModules[key] = enabled;
-  await supabase.from('schools').update({ modules: schoolModules }).eq('id', currentProfile.school_id);
+  await _sb.from('schools').update({ modules: schoolModules }).eq('id', currentProfile.school_id);
   showToast(`${key} ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'success');
 }
 
@@ -247,7 +247,7 @@ async function saveUserEdit() {
     class_name: document.getElementById('edit-user-class').value || null,
     subjects: document.getElementById('edit-user-subjects').value.split(',').map(s => s.trim()).filter(Boolean)
   };
-  await supabase.from('profiles').update(updates).eq('id', userId);
+  await _sb.from('profiles').update(updates).eq('id', userId);
   closeModal('edit-user-modal');
   showToast('Benutzer aktualisiert!', 'success');
   await loadSchoolAdminData();

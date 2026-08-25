@@ -194,7 +194,7 @@ async function saveTest() {
 }
 
 async function toggleTestActive(testId, active) {
-  await supabase.from('tests').update({ is_active: active, start_time: active ? new Date().toISOString() : null }).eq('id', testId);
+  await _sb.from('tests').update({ is_active: active, start_time: active ? new Date().toISOString() : null }).eq('id', testId);
   showToast(active ? 'Test gestartet!' : 'Test gestoppt', 'success');
   renderTests();
 }
@@ -325,7 +325,7 @@ async function submitTest(e) {
   }
   const allAnswers = await dbGet('test_answers', { submission_id: submission.id });
   const totalPoints = allAnswers.reduce((sum, a) => sum + (a.points_earned || 0), 0);
-  await supabase.from('test_submissions').update({ submitted_at: new Date().toISOString(), total_points: totalPoints }).eq('id', submission.id);
+  await _sb.from('test_submissions').update({ submitted_at: new Date().toISOString(), total_points: totalPoints }).eq('id', submission.id);
   showToast(`Test abgegeben! ${totalPoints}/${currentTest.max_points} Punkte`, 'success');
   currentTest = null;
   navigateTo('tests');
@@ -360,17 +360,17 @@ async function viewTestResults(testId) {
 }
 
 async function updateSubmissionGrade(subId, grade) {
-  await supabase.from('test_submissions').update({ grade }).eq('id', subId);
+  await _sb.from('test_submissions').update({ grade }).eq('id', subId);
   showToast('Note gespeichert', 'success');
 }
 
 async function updateSubmissionFeedback(subId, feedback) {
-  await supabase.from('test_submissions').update({ feedback }).eq('id', subId);
+  await _sb.from('test_submissions').update({ feedback }).eq('id', subId);
   showToast('Feedback gespeichert', 'success');
 }
 
 async function toggleSubmissionVisible(subId, visible) {
-  await supabase.from('test_submissions').update({ visible_to_student: visible }).eq('id', subId);
+  await _sb.from('test_submissions').update({ visible_to_student: visible }).eq('id', subId);
   showToast(visible ? 'Ergebnis sichtbar gemacht' : 'Ergebnis versteckt', 'success');
 }
 

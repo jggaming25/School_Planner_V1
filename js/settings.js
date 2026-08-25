@@ -30,7 +30,7 @@ async function changePassword() {
   const pw = document.getElementById('settings-new-pw').value;
   if (!pw || pw.length < 6) { showToast('Passwort muss min. 6 Zeichen lang sein', 'error'); return; }
   try {
-    await supabase.auth.updateUser({ password: pw });
+    await _sb.auth.updateUser({ password: pw });
     showToast('Passwort geändert!', 'success');
     document.getElementById('settings-new-pw').value = '';
   } catch (err) { showToast('Fehler: ' + err.message, 'error'); }

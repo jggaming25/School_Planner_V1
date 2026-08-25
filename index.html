@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.min.js"></script>
   <style>
     .auth-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg-primary); padding:20px; }
     .auth-container { width:100%; max-width:440px; }
@@ -200,7 +200,7 @@
         const school = await getSchool(profile.school_id);
         const authEmail = profile.email;
         showSuccess(`Code gültig für: ${profile.full_name} (${profile.role === 'teacher' ? 'Lehrer' : 'Schüler'}). Account wird erstellt...`);
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await _sb.auth.signUp({
           email: authEmail,
           password: 'CHANGE_ME_' + Math.random().toString(36).substring(7),
           options: { data: { profile_id: profile.id, role: profile.role, school_id: profile.school_id } }
@@ -209,14 +209,14 @@
           showError('Diese E-Mail ist bereits registriert. Bitte melde dich an.');
           return;
         }
-        await supabase.from('profiles').update({
+        await _sb.from('profiles').update({
           id: authData.user.id,
           access_code_used: true,
           access_code_attempts: profile.access_code_attempts + 1,
           force_email: true
         }).eq('id', profile.id);
         showSuccess('Account erstellt! Du wirst auf die Einrichtungsseite weitergeleitet...');
-        await supabase.auth.signInWithPassword({ email: authEmail, password: 'CHANGE_ME_' + authEmail.split('@')[0] });
+        await _sb.auth.signInWithPassword({ email: authEmail, password: 'CHANGE_ME_' + authEmail.split('@')[0] });
         setTimeout(() => { window.location.href = 'app.html?setup=true'; }, 1500);
       } catch (err) {
         showError('Fehler: ' + err.message);
