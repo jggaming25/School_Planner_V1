@@ -1,7 +1,10 @@
 function renderSettings() {
   if (profile) {
     document.getElementById('settings-name').value = profile.full_name || '';
+    document.getElementById('settings-email').value = currentUser?.email || profile.email || '';
     document.getElementById('settings-class').value = profile.class_name || '';
+    document.getElementById('settings-address').value = profile.address || '';
+    document.getElementById('settings-phone').value = profile.phone || '';
   }
   initTheme();
 }
@@ -10,60 +13,25 @@ async function saveProfile() {
   if (!currentUser) return;
   const updates = {
     full_name: document.getElementById('settings-name').value,
-    class_name: document.getElementById('settings-class').value
+    email: document.getElementById('settings-email').value,
+    class_name: document.getElementById('settings-class').value,
+    address: document.getElementById('settings-address').value,
+    phone: document.getElementById('settings-phone').value
   };
   try {
-    if (supabase) {
-      await supabase.from('profiles').update(updates).eq('id', currentUser.id);
-    }
+    await updateProfile(currentUser.id, updates);
     profile = { ...profile, ...updates };
-    localStorage.setItem('sp_profile_' + currentUser.id, JSON.stringify(profile));
     updateUserUI();
     showToast('Profil gespeichert!', 'success');
-  } catch (err) {
-    showToast('Fehler beim Speichern', 'error');
-  }
+  } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
 }
 
-async function exportData() {
-  if (!currentUser) return;
-  const tables = ['subjects', 'timetable', 'homework', 'grades', 'exams', 'calendar_events', 'substitutions', 'messages'];
-  const exportObj = { version: '1.0', exportDate: new Date().toISOString(), userId: currentUser.id, data: {} };
-  for (const table of tables) {
-    exportObj.data[table] = await dbGet(table, currentUser.id);
-  }
-  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `school-planner-export-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Daten exportiert!', 'success');
-}
-
-async function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (!imported.data) { showToast('Ungültiges Dateiformat', 'error'); return; }
-      const tables = ['subjects', 'timetable', 'homework', 'grades', 'exams', 'calendar_events', 'substitutions', 'messages'];
-      for (const table of tables) {
-        if (imported.data[table]) {
-          for (const record of imported.data[table]) {
-            const { id, created_at, ...rest } = record;
-            await dbInsert(table, { ...rest, user_id: currentUser.id });
-          }
-        }
-      }
-      showToast('Daten importiert! Seite wird neu geladen...', 'success');
-      setTimeout(() => location.reload(), 1500);
-    } catch (err) {
-      showToast('Fehler beim Importieren', 'error');
-    }
-  };
-  reader.readAsText(file);
+async function changePassword() {
+  const pw = document.getElementById('settings-new-pw').value;
+  if (!pw || pw.length < 6) { showToast('Passwort muss min. 6 Zeichen lang sein', 'error'); return; }
+  try {
+    await supabase.auth.updateUser({ password: pw });
+    showToast('Passwort geändert!', 'success');
+    document.getElementById('settings-new-pw').value = '';
+  } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
 }

@@ -1,31 +1,27 @@
 function checkNotifications() {
-  if (!currentUser) return;
+  if (!currentUser || !profile) return;
   checkHomeworkDue();
   checkExamUpcoming();
 }
 
 async function checkHomeworkDue() {
-  const hw = await dbGet('homework', currentUser.id);
-  const dueSoon = hw.filter(h => {
-    if (h.completed) return false;
-    const days = daysUntil(h.due_date);
-    return days <= 1 && days >= 0;
-  });
-  dueSoon.forEach(h => {
-    if (!sessionStorage.getItem('notif_hw_' + h.id)) {
-      showToast(`HA fällt bald ab: ${h.title}`, 'info');
-      sessionStorage.setItem('notif_hw_' + h.id, '1');
-    }
-  });
+  const filters = { school_id: profile.school_id };
+  if (profile.role === 'student') filters.class_name = profile.class_name;
+  const hw = await dbGet('homework', filters);
+  hw.filter(h => !h.completed && daysUntil(h.due_date) <= 1 && daysUntil(h.due_date) >= 0)
+    .forEach(h => {
+      if (!sessionStorage.getItem('notif_hw_' + h.id)) {
+        showToast(`HA fällt ab: ${h.title}`, 'info');
+        sessionStorage.setItem('notif_hw_' + h.id, '1');
+      }
+    });
 }
 
 async function checkExamUpcoming() {
-  const exams = await dbGet('exams', currentUser.id);
-  const soon = exams.filter(e => {
-    const days = daysUntil(e.exam_date);
-    return days === 0;
-  });
-  soon.forEach(e => {
+  const filters = { school_id: profile.school_id };
+  if (profile.role === 'student') filters.class_name = profile.class_name;
+  const exams = await dbGet('exams', filters);
+  exams.filter(e => daysUntil(e.exam_date) === 0).forEach(e => {
     if (!sessionStorage.getItem('notif_ex_' + e.id)) {
       showToast(`Klausur heute: ${e.title}`, 'info');
       sessionStorage.setItem('notif_ex_' + e.id, '1');
