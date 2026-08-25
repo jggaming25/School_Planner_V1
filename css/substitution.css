@@ -1,0 +1,7 @@
+.sub-entry {
+  transition: background var(--transition);
+}
+.sub-entry:hover {
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+}
