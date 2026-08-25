@@ -1,5 +1,4 @@
 let schoolUsers = [];
-let schoolClasses = [];
 let schoolModules = {};
 
 async function loadSchoolAdminData() {
@@ -15,7 +14,7 @@ async function loadSchoolAdminData() {
 }
 
 function renderSchoolAdmin() {
-  if (!currentProfile || !['super_admin','admin','school_admin'].includes(currentProfile.role)) return;
+  if (!currentProfile || !['school_admin','admin'].includes(currentProfile.role)) return;
   loadSchoolAdminData().then(() => renderSchoolAdminTab('users'));
 }
 

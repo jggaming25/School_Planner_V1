@@ -3,7 +3,7 @@ let msgFilter = 'inbox';
 
 async function renderMessages() {
   if (!currentUser) return;
-  messagesData = await dbGet('messages', { school_id: profile.school_id });
+  messagesData = await dbGet('messages', profile.school_id ? { school_id: profile.school_id } : {});
   renderMessageList();
 }
 

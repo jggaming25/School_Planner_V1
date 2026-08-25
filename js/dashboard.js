@@ -10,9 +10,9 @@ function renderDashboard() {
 
 async function loadDashboardData() {
   if (!currentUser) return;
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') filters.class_name = profile.class_name;
-  const studentFilter = { school_id: profile.school_id, student_id: currentUser.id };
+  const studentFilter = profile.school_id ? { school_id: profile.school_id, student_id: currentUser.id } : { student_id: currentUser.id };
   const [hw, exams, grades, tt] = await Promise.all([
     dbGet('homework', filters),
     dbGet('exams', filters),

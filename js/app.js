@@ -76,7 +76,7 @@ function updateUserUI() {
   document.getElementById('user-role').textContent = `${roleLabels[profile.role] || ''} ${profile.class_name ? '· ' + profile.class_name : ''}`;
 
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = ['super_admin','admin'].includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['super_admin','admin','school_admin'].includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin','admin','super_admin'].includes(profile.role) ? '' : 'none');
 }
 

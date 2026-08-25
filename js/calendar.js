@@ -3,7 +3,7 @@ let calendarEvents = [];
 
 async function renderCalendar() {
   if (!currentUser) return;
-  calendarEvents = await dbGet('calendar_events', { school_id: profile.school_id });
+  calendarEvents = await dbGet('calendar_events', profile.school_id ? { school_id: profile.school_id } : {});
   buildCalendar();
 }
 

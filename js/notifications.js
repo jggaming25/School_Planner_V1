@@ -5,7 +5,7 @@ function checkNotifications() {
 }
 
 async function checkHomeworkDue() {
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') filters.class_name = profile.class_name;
   const hw = await dbGet('homework', filters);
   hw.filter(h => !h.completed && daysUntil(h.due_date) <= 1 && daysUntil(h.due_date) >= 0)
@@ -18,7 +18,7 @@ async function checkHomeworkDue() {
 }
 
 async function checkExamUpcoming() {
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') filters.class_name = profile.class_name;
   const exams = await dbGet('exams', filters);
   exams.filter(e => daysUntil(e.exam_date) === 0).forEach(e => {

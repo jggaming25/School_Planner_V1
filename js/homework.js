@@ -3,7 +3,7 @@ let hwFilter = 'all';
 
 async function renderHomework() {
   if (!currentUser) return;
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') filters.class_name = profile.class_name;
   homeworkData = await dbGet('homework', filters);
   renderHwFilters();

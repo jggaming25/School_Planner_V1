@@ -3,7 +3,7 @@ let chartInstance = null;
 
 async function renderGrades() {
   if (!currentUser) return;
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') filters.student_id = currentUser.id;
   gradesData = await dbGet('grades', filters);
   renderGradeStats();

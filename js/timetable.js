@@ -3,7 +3,7 @@ let currentWeekType = 'A';
 
 async function renderTimetable() {
   if (!currentUser) return;
-  const filters = { school_id: profile.school_id };
+  const filters = profile.school_id ? { school_id: profile.school_id } : {};
   if (profile.role === 'student') {
     filters.class_name = profile.class_name;
   }

@@ -1,6 +1,6 @@
 async function renderSubstitution() {
   if (!currentUser) return;
-  const data = await dbGet('substitutions', { school_id: profile.school_id });
+  const data = await dbGet('substitutions', profile.school_id ? { school_id: profile.school_id } : {});
   data.sort((a, b) => b.date !== a.date ? new Date(b.date) - new Date(a.date) : a.period - b.period);
   const el = document.getElementById('substitution-list');
   if (data.length === 0) { el.innerHTML = '<div class="empty-state"><h3>Keine Vertretungen</h3></div>'; return; }

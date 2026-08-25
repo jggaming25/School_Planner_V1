@@ -25,7 +25,7 @@ function renderAdminRequests(tab, search = '') {
   }
   const el = document.getElementById('admin-requests-list');
   if (filtered.length === 0) {
-    el.innerHTML = `<div class="empty-state"><h3>${tab === 'open' ? 'Keine offenen Anfragen' : 'Keine历史记录'}</h3></div>`;
+    el.innerHTML = `<div class="empty-state"><h3>${tab === 'open' ? 'Keine offenen Anfragen' : 'Keine Einträge'}</h3></div>`;
     return;
   }
   el.innerHTML = filtered.map(r => `

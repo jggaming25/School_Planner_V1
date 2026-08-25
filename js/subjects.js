@@ -21,7 +21,7 @@ async function saveSubject() {
   });
   closeModal('subject-modal');
   showToast('Fach erstellt!', 'success');
-  subjects = await dbGet('subjects', { school_id: profile.school_id });
+  subjects = await dbGet('subjects', profile.school_id ? { school_id: profile.school_id } : {});
   renderSubjects();
   renderSubjectSelects();
 }
@@ -30,7 +30,7 @@ async function deleteSubject(id) {
   if (!confirm('Fach löschen?')) return;
   await dbDelete('subjects', { id });
   showToast('Gelöscht', 'success');
-  subjects = await dbGet('subjects', { school_id: profile.school_id });
+  subjects = await dbGet('subjects', profile.school_id ? { school_id: profile.school_id } : {});
   renderSubjects();
   renderSubjectSelects();
 }
