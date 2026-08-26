@@ -474,7 +474,7 @@ async function saveAnnouncement() {
     for (const u of targetUsers) {
       logAnnouncementEmail(ann.id, u.email, `Wartungsmeldung: ${title}`, `Hallo ${u.full_name || 'Nutzer'},\n\n${message}\n\n— School Planner Admin`);
     }
-    const systemTargetUsers = targetUsers.filter(u => SYSTEM_ROLES.includes(u.role));
+    const systemTargetUsers = targetUsers.filter(u => SYSTEM_ROLES.includes(u.role) || u.role === 'school_admin');
     for (const u of systemTargetUsers) {
       await dbInsert('notifications', {
         user_id: u.id,
