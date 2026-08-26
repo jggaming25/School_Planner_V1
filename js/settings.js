@@ -1,10 +1,34 @@
-function renderSettings() {
+async function renderSettings() {
   if (profile) {
     document.getElementById('settings-name').value = profile.full_name || '';
     document.getElementById('settings-email').value = currentUser?.email || profile.email || '';
     document.getElementById('settings-class').value = profile.class_name || '';
     document.getElementById('settings-address').value = profile.address || '';
     document.getElementById('settings-phone').value = profile.phone || '';
+  }
+  const schoolInfo = document.getElementById('settings-school-info');
+  if (schoolInfo) {
+    if (profile?.school_id) {
+      const school = await getSchool(profile.school_id);
+      const typeLabels = { grundschule: 'Grundschule', realschule: 'Realschule', gymnasium: 'Gymnasium', gesamtschule: 'Gesamtschule', foerderschule: 'Förderschule', berufsschule: 'Berufsschule', sonstige: 'Sonstige' };
+      if (school) {
+        schoolInfo.innerHTML = `
+          <div style="padding:16px">
+            <div style="font-size:1.125rem;font-weight:600;margin-bottom:4px">${escapeHtml(school.name)}</div>
+            <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:4px">${typeLabels[school.type] || school.type || ''}</div>
+            <div style="font-size:0.813rem;color:var(--text-muted)">ID: ${school.id.substring(0, 8)}...</div>
+            ${school.address ? `<div style="font-size:0.813rem;color:var(--text-muted);margin-top:4px">${escapeHtml(school.address)}</div>` : ''}
+          </div>`;
+      } else {
+        schoolInfo.innerHTML = '<div style="padding:16px;color:var(--text-secondary)">Schuldaten konnten nicht geladen werden.</div>';
+      }
+    } else {
+      schoolInfo.innerHTML = `
+        <div style="padding:16px;text-align:center">
+          <p style="color:var(--text-secondary);margin-bottom:12px">Du bist aktuell keiner Schule zugeordnet.</p>
+          <p style="font-size:0.813rem;color:var(--text-muted)">Melde dich beim Admin, um einer Schule zugewiesen zu werden.</p>
+        </div>`;
+    }
   }
   initTheme();
 }

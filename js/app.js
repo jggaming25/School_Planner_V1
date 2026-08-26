@@ -80,7 +80,17 @@ function updateUserUI() {
   const initials = profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-name').textContent = profile.full_name || 'Unbekannt';
-  document.getElementById('user-role').textContent = `${ROLE_LABELS[profile.role] || ''} ${profile.class_name ? '· ' + profile.class_name : ''}`;
+  const roleText = ROLE_LABELS[profile.role] || profile.role;
+  const classText = profile.class_name ? ' · ' + profile.class_name : '';
+  document.getElementById('user-role').textContent = roleText + classText;
+  if (profile.school_id) {
+    getSchool(profile.school_id).then(school => {
+      if (school) {
+        const roleEl = document.getElementById('user-role');
+        roleEl.textContent = roleText + classText + ' · ' + school.name;
+      }
+    });
+  }
 
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.school-admin-only').forEach(el => {
