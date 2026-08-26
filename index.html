@@ -140,10 +140,19 @@
 
     async function handleLogin(e) {
       e.preventDefault();
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const password = document.getElementById('login-password').value;
       const btn = document.getElementById('login-btn');
       btn.textContent = 'Anmelden...'; btn.disabled = true;
       try {
-        const data = await signIn(document.getElementById('login-email').value, document.getElementById('login-password').value);
+        const security = await getLoginSecurity(email);
+        if (security && security.locked) {
+          showError(`Account gesperrt! Sicherheitssperre aktiv. Entsperrung erfolgt automatisch nach 48 Stunden oder über den Link in der Sicherheits-E-Mail.`);
+          btn.textContent = 'Anmelden'; btn.disabled = false;
+          return;
+        }
+        const data = await signIn(email, password);
+        await resetFailedLogins(email);
         const profile = await getProfile(data.user.id);
         if (profile) {
           window.location.href = 'app.html';
@@ -152,7 +161,18 @@
         }
       } catch (err) {
         const msgs = { 'Invalid login credentials': 'E-Mail oder Passwort falsch.', 'Email not confirmed': 'Bitte bestätige deine E-Mail.' };
-        showError(msgs[err.message] || err.message);
+        const displayMsg = msgs[err.message] || err.message;
+        if (err.message === 'Invalid login credentials') {
+          const result = await incrementFailedLogin(email);
+          if (result.locked) {
+            showError(`Account gesperrt nach 3 fehlgeschlagenen Versuchen! Sicherheitssperre aktiv. Entsperrung in 48 Stunden oder über den Link in der Sicherheits-E-Mail.`);
+          } else {
+            const remaining = 3 - result.attempts;
+            showError(`E-Mail oder Passwort falsch. Noch ${remaining} Versuch${remaining !== 1 ? 'e' : ''} übrig.`);
+          }
+        } else {
+          showError(displayMsg);
+        }
       } finally { btn.textContent = 'Anmelden'; btn.disabled = false; }
     }
 
@@ -224,6 +244,19 @@
     }
 
     (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const unlockToken = params.get('unlock');
+      if (unlockToken) {
+        switchTab('login');
+        const result = await unlockAccount(unlockToken);
+        if (result.success) {
+          showSuccess(result.message);
+          window.history.replaceState({}, '', window.location.pathname);
+        } else {
+          showError(result.message);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
       const user = await initAuth();
       if (user && currentProfile) window.location.href = 'app.html';
     })();

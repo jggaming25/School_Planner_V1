@@ -1,14 +1,17 @@
 let supportTickets = [];
 let supportFilter = 'open';
+let supportLockedAccounts = [];
 
 async function renderSupportPanel() {
   if (!SYSTEM_ROLES.includes(profile.role)) return;
-  const [tickets, schools] = await Promise.all([
+  const [tickets, schools, locked] = await Promise.all([
     dbGet('support_tickets'),
-    dbGet('schools')
+    dbGet('schools'),
+    _sb.from('login_security').select('*').order('last_attempt_at', { ascending: false })
   ]);
   supportTickets = tickets;
   adminAllSchools = schools;
+  supportLockedAccounts = (locked.data || []).filter(s => s.locked_until && new Date(s.locked_until) > new Date());
   renderSupportContent();
 }
 
@@ -25,8 +28,40 @@ function renderSupportContent() {
       <button class="tab ${supportFilter==='open'?'active':''}" onclick="supportFilter='open';renderSupportContent()">Offen (${openTickets.length})</button>
       <button class="tab ${supportFilter==='mine'?'active':''}" onclick="supportFilter='mine';renderSupportContent()">Meine (${myTickets.length + inProgress.length})</button>
       <button class="tab ${supportFilter==='resolved'?'active':''}" onclick="supportFilter='resolved';renderSupportContent()">Erledigt (${resolved.length})</button>
+      <button class="tab ${supportFilter==='security'?'active':''}" onclick="supportFilter='security';renderSupportContent()">Sicherheit (${supportLockedAccounts.length})</button>
     </div>
-    ${renderTicketList()}`;
+    ${supportFilter === 'security' ? renderSecurityTab() : renderTicketList()}`;
+}
+
+function renderSecurityTab() {
+  if (supportLockedAccounts.length === 0) return '<div class="empty-state"><h3>Keine gesperrten Accounts</h3></div>';
+  return `<div class="table-wrapper">
+    <table>
+      <thead><tr><th>E-Mail</th><th>Versuche</th><th>Gesperrt bis</th><th style="text-align:right">Aktion</th></tr></thead>
+      <tbody>${supportLockedAccounts.map(s => {
+        const lockTime = new Date(s.locked_until);
+        const remaining = Math.max(0, Math.round((lockTime - new Date()) / 3600000));
+        return `<tr>
+          <td><strong>${escapeHtml(s.email)}</strong></td>
+          <td><span class="badge badge-red">${s.failed_attempts}/3</span></td>
+          <td style="font-size:0.813rem">${lockTime.toLocaleString('de-DE')} (noch ~${remaining}h)</td>
+          <td style="text-align:right">
+            <button class="btn btn-primary btn-sm" onclick="supportResendSecurityEmail('${escapeHtml(s.email)}')">Sicherheits-E-Mail senden</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+async function supportResendSecurityEmail(email) {
+  try {
+    const result = await resendSecurityEmail(email);
+    showToast(result.message, result.success ? 'success' : 'error');
+    if (result.success) await renderSupportPanel();
+  } catch (err) {
+    showToast('Fehler: ' + err.message, 'error');
+  }
 }
 
 function renderTicketList() {

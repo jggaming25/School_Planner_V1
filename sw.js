@@ -1,4 +1,4 @@
-const CACHE_NAME = 'school-planner-v2';
+const CACHE_NAME = 'school-planner-v3';
 const STATIC_ASSETS = [
   '/School_Planner_V1/app.html',
   '/School_Planner_V1/manifest.json',

@@ -101,3 +101,101 @@ async function dbDelete(table, filters) {
   const { error } = await query;
   if (error) { console.error('dbDelete error:', error); throw error; }
 }
+
+// === Security: Login Lockout ===
+
+async function getLoginSecurity(email) {
+  const norm = (email || '').trim().toLowerCase();
+  const { data, error } = await _sb.from('login_security').select('*').eq('email', norm).single();
+  if (error || !data) return null;
+  if (data.locked_until && new Date(data.locked_until) > new Date()) {
+    return { ...data, locked: true };
+  }
+  if (data.locked_until && new Date(data.locked_until) <= new Date()) {
+    await _sb.from('login_security').update({ locked_until: null, failed_attempts: 0, unlock_token: null }).eq('email', norm);
+    return { ...data, locked: false, failed_attempts: 0, locked_until: null };
+  }
+  return { ...data, locked: false };
+}
+
+async function incrementFailedLogin(email) {
+  const norm = (email || '').trim().toLowerCase();
+  const existing = await getLoginSecurity(norm);
+  const attempts = (existing?.failed_attempts || 0) + 1;
+  const shouldLock = attempts >= 3;
+  const unlockToken = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+  const update = {
+    email: norm,
+    failed_attempts: attempts,
+    last_attempt_at: new Date().toISOString(),
+    ...(shouldLock ? { locked_until: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), unlock_token: unlockToken } : {})
+  };
+  if (existing) {
+    await _sb.from('login_security').update(update).eq('email', norm);
+  } else {
+    await _sb.from('login_security').insert(update);
+  }
+  if (shouldLock) {
+    const profile = (await _sb.from('profiles').select('id, full_name, email').eq('email', norm).limit(1)).data?.[0];
+    await _sb.from('security_events').insert({
+      email: norm,
+      event_type: 'account_locked',
+      metadata: { user_name: profile?.full_name || norm, unlock_token: unlockToken, reason: '3 fehlgeschlagene Login-Versuche' }
+    });
+    await dbInsert('email_log', {
+      recipient_email: norm,
+      subject: 'Account gesperrt – Sicherheitswarnung',
+      body: `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account wurde nach 3 fehlgeschlagenen Login-Versuchen gesperrt.\nGrund: Sicherheitssperre aktiv\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.\nFalls du diese Sitzung nicht initiiert hast, ändere dein Passwort umgehend.`,
+      event_type: 'account_locked'
+    });
+  }
+  return { attempts, locked: shouldLock, unlockToken: shouldLock ? unlockToken : null };
+}
+
+async function resetFailedLogins(email) {
+  const norm = (email || '').trim().toLowerCase();
+  await _sb.from('login_security').update({ failed_attempts: 0, locked_until: null, unlock_token: null }).eq('email', norm);
+}
+
+async function unlockAccount(token) {
+  const { data, error } = await _sb.from('login_security').select('*').eq('unlock_token', token).single();
+  if (error || !data) return { success: false, message: 'Ungültiger Entsperr-Link.' };
+  if (!data.locked_until || new Date(data.locked_until) <= new Date()) return { success: false, message: 'Account ist bereits entsperrt.' };
+  await _sb.from('login_security').update({ locked_until: null, failed_attempts: 0, unlock_token: null }).eq('email', data.email);
+  await _sb.from('security_events').insert({
+    email: data.email,
+    event_type: 'account_unlocked',
+    metadata: { method: 'unlock_link' }
+  });
+  return { success: true, message: 'Account wurde entsperrt! Du kannst dich jetzt anmelden.' };
+}
+
+async function resendSecurityEmail(email) {
+  const norm = (email || '').trim().toLowerCase();
+  const sec = await getLoginSecurity(norm);
+  if (!sec) return { success: false, message: 'Kein Sicherheits-Eintrag für diese E-Mail.' };
+  const unlockToken = sec.unlock_token || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2));
+  if (!sec.locked_until || new Date(sec.locked_until) <= new Date()) return { success: false, message: 'Account ist nicht gesperrt.' };
+  const profile = (await _sb.from('profiles').select('full_name').eq('email', norm).limit(1)).data?.[0];
+  await dbInsert('email_log', {
+    recipient_email: norm,
+    subject: 'Account entsperren – Erinnerung',
+    body: `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account ist noch gesperrt.\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.`,
+    event_type: 'security_reminder'
+  });
+  await _sb.from('security_events').insert({
+    email: norm,
+    event_type: 'security_email_resent',
+    metadata: { triggered_by: 'support' }
+  });
+  return { success: true, message: 'Sicherheits-E-Mail wurde erneut gesendet.' };
+}
+
+async function logAnnouncementEmail(announcementId, recipientEmail, subject, body) {
+  await dbInsert('email_log', {
+    recipient_email: recipientEmail,
+    subject,
+    body,
+    event_type: 'announcement'
+  });
+}

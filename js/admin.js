@@ -4,24 +4,30 @@ let adminAllUsers = [];
 let adminAllSchools = [];
 let adminCurrentTab = 'requests';
 let adminAnnouncements = [];
+let adminSecurityData = [];
+let adminEmailLog = [];
 
 const adminRoleLabels = { super_admin: 'CEO', ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
 const adminRoleBadges = { super_admin: 'badge-red', ceo: 'badge-red', head_admin: 'badge-red', admin: 'badge-orange', supporter: 'badge-blue', school_admin: 'badge-orange', teacher: 'badge-blue', student: 'badge-green' };
 
 async function loadAdminData() {
   if (!currentProfile || !SYSTEM_ROLES.includes(currentProfile.role)) return;
-  const [pending, history, users, schools, announcements] = await Promise.all([
+  const [pending, history, users, schools, announcements, security, emailLog] = await Promise.all([
     dbGet('school_requests', { status: 'pending' }),
     dbGet('school_requests', { status: ['approved', 'rejected'] }),
     _sb.from('profiles').select('*').order('created_at', { ascending: false }),
     dbGet('schools'),
-    dbGet('announcements')
+    dbGet('announcements'),
+    _sb.from('login_security').select('*').order('last_attempt_at', { ascending: false }),
+    _sb.from('email_log').select('*').order('created_at', { ascending: false }).limit(100)
   ]);
   adminRequests = pending;
   adminHistory = history;
   adminAllUsers = users.data || [];
   adminAllSchools = schools;
   adminAnnouncements = announcements;
+  adminSecurityData = security.data || [];
+  adminEmailLog = emailLog.data || [];
 }
 
 function renderAdminPanel() {
@@ -34,7 +40,7 @@ function switchAdminTab(tab) {
   adminCurrentTab = tab;
   document.querySelectorAll('#admin-top-tabs .tab').forEach(t => t.classList.remove('active'));
   const tabs = document.querySelectorAll('#admin-top-tabs .tab');
-  const idx = { requests: 0, users: 1, schools: 2, announcements: 3, invite: 4 }[tab];
+  const idx = { requests: 0, users: 1, schools: 2, announcements: 3, invite: 4, security: 5 }[tab];
   if (tabs[idx]) tabs[idx].classList.add('active');
   const searchWrap = document.getElementById('admin-tab-search');
   const searchInput = document.getElementById('admin-search-input');
@@ -55,6 +61,7 @@ function renderAdminTabContent() {
   else if (adminCurrentTab === 'schools') renderAllSchoolsSection(el);
   else if (adminCurrentTab === 'announcements') renderAnnouncementsSection(el);
   else if (adminCurrentTab === 'invite') renderInviteSection(el);
+  else if (adminCurrentTab === 'security') renderSecuritySection(el);
 }
 
 function adminSearchHandler(query) {
@@ -455,13 +462,17 @@ async function saveAnnouncement() {
   if (document.getElementById('ann-target-te').checked) targetRoles.push('teacher');
   if (document.getElementById('ann-target-st').checked) targetRoles.push('student');
   try {
-    await dbInsert('announcements', {
+    const ann = await dbInsert('announcements', {
       created_by: currentUser.id,
       title, message,
       is_active: true,
       target_roles: targetRoles
     });
-    showToast('Meldung gesendet!', 'success');
+    const targetUsers = adminAllUsers.filter(u => targetRoles.includes(u.role) && u.email);
+    for (const u of targetUsers) {
+      logAnnouncementEmail(ann.id, u.email, `Wartungsmeldung: ${title}`, `Hallo ${u.full_name || 'Nutzer'},\n\n${message}\n\n— School Planner Admin`);
+    }
+    showToast(`Meldung gesendet! (${targetUsers.length} Empfänger benachrichtigt)`, 'success');
     await loadAdminData();
     renderAnnouncementsSection(document.getElementById('admin-tab-content'));
   } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
@@ -513,4 +524,62 @@ async function sendInvitation() {
       </div>`;
     showToast('Einladung erstellt!', 'success');
   } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
+}
+
+function renderSecuritySection(el) {
+  const locked = adminSecurityData.filter(s => s.locked_until && new Date(s.locked_until) > new Date());
+  const recent = adminEmailLog.filter(e => e.event_type === 'account_locked');
+  el.innerHTML = `
+    <div class="flex-between mb-20">
+      <h3>Sicherheit</h3>
+    </div>
+    <h4 class="mb-12">Gesperrte Accounts (${locked.length})</h4>
+    ${locked.length === 0 ? '<div class="empty-state"><h3>Keine gesperrten Accounts</h3></div>' :
+    `<div class="table-wrapper mb-24">
+      <table>
+        <thead><tr><th>E-Mail</th><th>Versuche</th><th>Gesperrt bis</th><th style="text-align:right">Aktion</th></tr></thead>
+        <tbody>${locked.map(s => {
+          const lockTime = new Date(s.locked_until);
+          const remaining = Math.max(0, Math.round((lockTime - new Date()) / 3600000));
+          return `<tr>
+            <td><strong>${escapeHtml(s.email)}</strong></td>
+            <td><span class="badge badge-red">${s.failed_attempts}/3</span></td>
+            <td style="font-size:0.813rem">${lockTime.toLocaleString('de-DE')} (noch ~${remaining}h)</td>
+            <td style="text-align:right">
+              <button class="btn btn-primary btn-sm" onclick="adminResendSecurityEmail('${escapeHtml(s.email)}')">Sicherheits-E-Mail senden</button>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`}
+    <h4 class="mb-12">Letzte Sicherheits-Events</h4>
+    ${recent.length === 0 ? '<div class="empty-state"><h3>Keine Events</h3></div>' :
+    `<div class="table-wrapper">
+      <table>
+        <thead><tr><th>E-Mail</th><th>Event</th><th>Zeitpunkt</th></tr></thead>
+        <tbody>${recent.map(e => `
+          <tr>
+            <td>${escapeHtml(e.email)}</td>
+            <td><span class="badge badge-red">Account gesperrt</span></td>
+            <td style="font-size:0.813rem">${formatDate(e.created_at)}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    </div>`}
+  `;
+}
+
+async function adminResendSecurityEmail(email) {
+  try {
+    const result = await resendSecurityEmail(email);
+    if (result.success) {
+      showToast(result.message, 'success');
+      await loadAdminData();
+      renderSecuritySection(document.getElementById('admin-tab-content'));
+    } else {
+      showToast(result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Fehler: ' + err.message, 'error');
+  }
 }
