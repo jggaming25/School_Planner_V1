@@ -47,6 +47,10 @@
             Admin Panel
             <span class="badge badge-red" id="admin-badge" style="display:none">0</span>
           </a>
+          <a class="sidebar-link" data-page="support" onclick="navigateTo('support')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Support
+          </a>
         </div>
 
         <!-- School admin section -->
@@ -173,12 +177,20 @@
             <button class="tab active" onclick="switchAdminTab('requests')">Schul-Anfragen <span class="badge badge-red" id="admin-open-count" style="margin-left:4px">0</span></button>
             <button class="tab" onclick="switchAdminTab('users')">Alle Nutzer</button>
             <button class="tab" onclick="switchAdminTab('schools')">Schulen</button>
+            <button class="tab" onclick="switchAdminTab('announcements')">Wartungsmeldung</button>
+            <button class="tab" onclick="switchAdminTab('invite')">Admins einladen</button>
           </div>
           <div id="admin-tab-search" class="mb-16" style="display:none">
             <input type="text" class="input-field" id="admin-search-input" placeholder="Suche..." oninput="adminSearchHandler(this.value)" style="max-width:400px">
           </div>
           <div id="admin-tab-content"></div>
         </div>
+      </div>
+
+      <!-- Support -->
+      <div id="page-support" class="page">
+        <div class="page-header"><h1>Support</h1><p class="subtitle">Schul-Anfragen verwalten</p></div>
+        <div class="page-body" id="support-content"></div>
       </div>
 
       <!-- School Admin -->
@@ -335,6 +347,8 @@
   <script src="js/pwa.js"></script>
   <script src="js/attendance.js"></script>
   <script src="js/absence-requests.js"></script>
+  <script src="js/support.js"></script>
+  <script src="js/announcements.js"></script>
 
   <div class="notif-panel" id="notification-panel">
     <div class="notif-panel-header">

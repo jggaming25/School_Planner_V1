@@ -48,6 +48,13 @@
 .sidebar-section {
   margin-bottom: 8px;
 }
+.sidebar-section.admin-only,
+.sidebar-section.school-admin-only,
+.sidebar-section.teacher-only,
+.sidebar-section.student-only,
+.sidebar-section.has-school {
+  display: none;
+}
 .sidebar-section-label {
   font-size: 0.688rem;
   font-weight: 600;

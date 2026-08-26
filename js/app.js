@@ -4,6 +4,10 @@ let schoolClasses = [];
 let schoolModules = {};
 let currentPage = 'dashboard';
 
+const ROLE_LABELS = { ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
+const SYSTEM_ROLES = ['ceo','head_admin','admin','supporter'];
+const STAFF_ROLES = [...SYSTEM_ROLES, 'school_admin','teacher'];
+
 async function initApp() {
   const user = await initAuth();
   if (!user) { window.location.href = 'index.html'; return; }
@@ -19,8 +23,8 @@ async function initApp() {
     await loadSchoolSettings();
     applyModuleVisibility();
   }
-  handleUrlParams();
-  const startPage = (!profile.school_id && ['super_admin','admin'].includes(profile.role)) ? 'admin' : 'dashboard';
+  checkAnnouncements();
+  const startPage = SYSTEM_ROLES.includes(profile.role) ? 'admin' : 'dashboard';
   navigateTo(startPage);
 }
 
@@ -62,7 +66,7 @@ async function completeSetup() {
       force_email: false
     });
     if (currentUser.email !== email) {
-      await _sb.auth.updateUser({ email });
+      try { await _sb.auth.updateUser({ email }); } catch(e) { console.warn('Email update:', e.message); }
     }
     showToast('Profil eingerichtet!', 'success');
     location.reload();
@@ -76,15 +80,13 @@ function updateUserUI() {
   const initials = profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
   document.getElementById('user-avatar').textContent = initials;
   document.getElementById('user-name').textContent = profile.full_name || 'Unbekannt';
-  const roleLabels = { super_admin: 'Super Admin', admin: 'Admin', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
-  document.getElementById('user-role').textContent = `${roleLabels[profile.role] || ''} ${profile.class_name ? '· ' + profile.class_name : ''}`;
+  document.getElementById('user-role').textContent = `${ROLE_LABELS[profile.role] || ''} ${profile.class_name ? '· ' + profile.class_name : ''}`;
 
-  document.querySelectorAll('.admin-only').forEach(el => el.style.display = ['super_admin','admin'].includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin'].includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin','admin','supporter','head_admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.student-only').forEach(el => {
-    const isVisible = profile.role === 'student' || ['teacher','school_admin'].includes(profile.role);
-    el.style.display = isVisible ? '' : 'none';
+    el.style.display = ['student','teacher','school_admin'].includes(profile.role) ? '' : 'none';
   });
   document.querySelectorAll('.has-school').forEach(el => {
     el.style.display = profile.school_id ? '' : 'none';
@@ -99,7 +101,7 @@ async function loadAllData() {
     dbGet('classes', filters)
   ]);
   renderSubjectSelects();
-  if (['super_admin','admin'].includes(profile.role)) {
+  if (SYSTEM_ROLES.includes(profile.role)) {
     const pending = await dbGet('school_requests', { status: 'pending' });
     const badge = document.getElementById('admin-badge');
     if (badge) { badge.textContent = pending.length; badge.style.display = pending.length > 0 ? 'inline' : 'none'; }
@@ -145,7 +147,7 @@ function renderSubjectSelects() {
     if (grStudent) {
       grStudent.innerHTML = `<option value="${currentUser.id}">${escapeHtml(profile.full_name)} (ich)</option>`;
     }
-  } else if (['teacher','school_admin','admin'].includes(profile.role)) {
+  } else if (['teacher','school_admin'].includes(profile.role)) {
     dbGet('profiles', { school_id: profile.school_id, role: 'student' }).then(students => {
       const grStudent = document.getElementById('gr-student');
       if (grStudent) {
@@ -174,7 +176,8 @@ function renderPage(page) {
   if (schoolPages.includes(page) && !profile.school_id) {
     const el = document.getElementById('page-' + page);
     if (el) {
-      el.querySelector('.page-body').innerHTML = '<div class="empty-state"><h3>Kein Schulzugang</h3><p>Du bist keiner Schule zugeordnet.</p></div>';
+      const body = el.querySelector('.page-body');
+      if (body) body.innerHTML = '<div class="empty-state"><h3>Kein Schulzugang</h3><p>Du bist keiner Schule zugeordnet.</p></div>';
     }
     return;
   }
@@ -182,6 +185,7 @@ function renderPage(page) {
     case 'dashboard': renderDashboard(); break;
     case 'admin': renderAdminPanel(); break;
     case 'school-admin': renderSchoolAdmin(); break;
+    case 'support': renderSupportPanel(); break;
     case 'timetable': renderTimetable(); break;
     case 'homework': renderHomework(); break;
     case 'grades': renderGrades(); break;

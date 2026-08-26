@@ -162,7 +162,7 @@ async function cancelAbsenceRequest(id) {
 
 async function renderAbsenceApprovals() {
   if (!currentUser || !profile) return;
-  if (!['teacher', 'school_admin', 'admin', 'super_admin'].includes(profile.role)) return;
+  if (!['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role)) return;
 
   const el = document.getElementById('absences-content');
   if (!el) return;
@@ -245,7 +245,7 @@ async function loadAbsenceApprovalsTab(status, tabBtn) {
     Sonstiges: 'Sonstiges'
   };
 
-  const isApprover = ['teacher', 'school_admin', 'admin', 'super_admin'].includes(profile.role);
+  const isApprover = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
 
   container.innerHTML = filtered.map(r => {
     const student = studentMap[r.student_id];

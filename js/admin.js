@@ -3,40 +3,38 @@ let adminHistory = [];
 let adminAllUsers = [];
 let adminAllSchools = [];
 let adminCurrentTab = 'requests';
+let adminAnnouncements = [];
 
-const adminRoleLabels = { super_admin: 'Super Admin', admin: 'Admin', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
-const adminRoleBadges = { super_admin: 'badge-red', admin: 'badge-orange', school_admin: 'badge-orange', teacher: 'badge-blue', student: 'badge-green' };
+const adminRoleLabels = { ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
+const adminRoleBadges = { ceo: 'badge-red', head_admin: 'badge-red', admin: 'badge-orange', supporter: 'badge-blue', school_admin: 'badge-orange', teacher: 'badge-blue', student: 'badge-green' };
 
 async function loadAdminData() {
-  if (!currentProfile || !['super_admin', 'admin'].includes(currentProfile.role)) return;
-  const [pending, history, users, schools] = await Promise.all([
+  if (!currentProfile || !SYSTEM_ROLES.includes(currentProfile.role)) return;
+  const [pending, history, users, schools, announcements] = await Promise.all([
     dbGet('school_requests', { status: 'pending' }),
     dbGet('school_requests', { status: ['approved', 'rejected'] }),
     _sb.from('profiles').select('*').order('created_at', { ascending: false }),
-    dbGet('schools')
+    dbGet('schools'),
+    dbGet('announcements')
   ]);
   adminRequests = pending;
   adminHistory = history;
   adminAllUsers = users.data || [];
   adminAllSchools = schools;
+  adminAnnouncements = announcements;
 }
 
 function renderAdminPanel() {
-  if (!currentProfile || !['super_admin', 'admin'].includes(currentProfile.role)) {
-    document.getElementById('page-admin').innerHTML = '<div class="page-body"><div class="empty-state"><h3>Kein Zugriff</h3></div></div>';
-    return;
-  }
+  if (!currentProfile || !SYSTEM_ROLES.includes(currentProfile.role)) return;
   adminCurrentTab = 'requests';
-  loadAdminData().then(() => {
-    switchAdminTab('requests');
-  });
+  loadAdminData().then(() => switchAdminTab('requests'));
 }
 
 function switchAdminTab(tab) {
   adminCurrentTab = tab;
   document.querySelectorAll('#admin-top-tabs .tab').forEach(t => t.classList.remove('active'));
   const tabs = document.querySelectorAll('#admin-top-tabs .tab');
-  const idx = { requests: 0, users: 1, schools: 2 }[tab];
+  const idx = { requests: 0, users: 1, schools: 2, announcements: 3, invite: 4 }[tab];
   if (tabs[idx]) tabs[idx].classList.add('active');
   const searchWrap = document.getElementById('admin-tab-search');
   const searchInput = document.getElementById('admin-search-input');
@@ -55,6 +53,8 @@ function renderAdminTabContent() {
   if (adminCurrentTab === 'requests') renderAdminRequestsSection(el);
   else if (adminCurrentTab === 'users') renderAllUsersSection(el);
   else if (adminCurrentTab === 'schools') renderAllSchoolsSection(el);
+  else if (adminCurrentTab === 'announcements') renderAnnouncementsSection(el);
+  else if (adminCurrentTab === 'invite') renderInviteSection(el);
 }
 
 function adminSearchHandler(query) {
@@ -142,8 +142,10 @@ function renderAllUsersSection(el, search) {
       <div class="flex gap-8">
         <select class="input-field" id="admin-role-filter" onchange="renderAllUsersSection(document.getElementById('admin-tab-content'))" style="max-width:180px">
           <option value="">Alle Rollen</option>
-          <option value="super_admin" ${roleFilter === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+          <option value="ceo" ${roleFilter === 'ceo' ? 'selected' : ''}>CEO</option>
+          <option value="head_admin" ${roleFilter === 'head_admin' ? 'selected' : ''}>Head Admin</option>
           <option value="admin" ${roleFilter === 'admin' ? 'selected' : ''}>Admin</option>
+          <option value="supporter" ${roleFilter === 'supporter' ? 'selected' : ''}>Supporter</option>
           <option value="school_admin" ${roleFilter === 'school_admin' ? 'selected' : ''}>Schulleiter</option>
           <option value="teacher" ${roleFilter === 'teacher' ? 'selected' : ''}>Lehrer</option>
           <option value="student" ${roleFilter === 'student' ? 'selected' : ''}>Schüler</option>
@@ -390,4 +392,125 @@ async function rejectRequest(requestId) {
   showToast('Anfrage abgelehnt.', 'info');
   await loadAdminData();
   renderAdminTabContent();
+}
+
+function renderAnnouncementsSection(el) {
+  const active = adminAnnouncements.filter(a => a.is_active);
+  const inactive = adminAnnouncements.filter(a => !a.is_active);
+  el.innerHTML = `
+    <div class="flex-between mb-20">
+      <h3>Wartungsmeldungen</h3>
+      <button class="btn btn-primary btn-sm" onclick="showCreateAnnouncement()">+ Neue Meldung</button>
+    </div>
+    <div id="announcement-form-area"></div>
+    ${active.length === 0 && inactive.length === 0 ? '<div class="empty-state"><h3>Keine Meldungen</h3></div>' : ''}
+    ${active.length > 0 ? `<h4 class="mb-12">Aktive Meldungen</h4>${active.map(a => `
+      <div class="card mb-12" style="padding:16px;border-left:4px solid var(--warning)">
+        <div class="flex-between mb-8">
+          <strong>${escapeHtml(a.title)}</strong>
+          <button class="btn btn-danger btn-sm" onclick="toggleAnnouncement('${a.id}', false)">Deaktivieren</button>
+        </div>
+        <p style="font-size:0.875rem;color:var(--text-secondary);margin:0">${escapeHtml(a.message)}</p>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">Ziel: ${(a.target_roles || []).join(', ')} · Erstellt: ${formatDate(a.created_at)}</div>
+      </div>
+    `).join('')}` : ''}
+    ${inactive.length > 0 ? `<h4 class="mb-12 mt-20">Deaktivierte Meldungen</h4>${inactive.map(a => `
+      <div class="card mb-12" style="padding:16px;opacity:0.6">
+        <div class="flex-between mb-8">
+          <strong>${escapeHtml(a.title)}</strong>
+          <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncement('${a.id}', true)">Aktivieren</button>
+        </div>
+        <p style="font-size:0.875rem;color:var(--text-secondary);margin:0">${escapeHtml(a.message)}</p>
+      </div>
+    `).join('')}` : ''}`;
+}
+
+function showCreateAnnouncement() {
+  const area = document.getElementById('announcement-form-area');
+  area.innerHTML = `
+    <div class="card mb-20" style="padding:20px">
+      <h4 class="mb-12">Neue Wartungsmeldung</h4>
+      <div class="input-group"><label>Titel</label><input type="text" class="input-field" id="ann-title" placeholder="z.B. Geplante Wartung"></div>
+      <div class="input-group"><label>Nachricht</label><textarea class="input-field" id="ann-message" rows="3" placeholder="Meldungstext..."></textarea></div>
+      <div class="input-group"><label>Zielgruppe</label>
+        <div class="flex gap-12" style="flex-wrap:wrap;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-sa" checked> Schulleitungen</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-te" checked> Lehrkräfte</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-st" checked> Schüler</label>
+        </div>
+      </div>
+      <div class="flex gap-8 mt-12">
+        <button class="btn btn-primary btn-sm" onclick="saveAnnouncement()">Senden</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('announcement-form-area').innerHTML=''">Abbrechen</button>
+      </div>
+    </div>`;
+}
+
+async function saveAnnouncement() {
+  const title = document.getElementById('ann-title').value;
+  const message = document.getElementById('ann-message').value;
+  if (!title || !message) { showToast('Titel und Nachricht nötig', 'error'); return; }
+  const targetRoles = [];
+  if (document.getElementById('ann-target-sa').checked) targetRoles.push('school_admin');
+  if (document.getElementById('ann-target-te').checked) targetRoles.push('teacher');
+  if (document.getElementById('ann-target-st').checked) targetRoles.push('student');
+  try {
+    await dbInsert('announcements', {
+      created_by: currentUser.id,
+      title, message,
+      is_active: true,
+      target_roles: targetRoles
+    });
+    showToast('Meldung gesendet!', 'success');
+    await loadAdminData();
+    renderAnnouncementsSection(document.getElementById('admin-tab-content'));
+  } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
+}
+
+async function toggleAnnouncement(id, active) {
+  await _sb.from('announcements').update({ is_active: active }).eq('id', id);
+  showToast(active ? 'Meldung aktiviert' : 'Meldung deaktiviert', 'success');
+  await loadAdminData();
+  renderAnnouncementsSection(document.getElementById('admin-tab-content'));
+}
+
+function renderInviteSection(el) {
+  el.innerHTML = `
+    <div class="flex-between mb-20">
+      <h3>Admins einladen</h3>
+    </div>
+    <div class="card" style="padding:20px;max-width:500px">
+      <div class="input-group"><label>E-Mail-Adresse</label><input type="email" class="input-field" id="invite-email" placeholder="admin@beispiel.de"></div>
+      <div class="input-group"><label>Rolle</label>
+        <select class="input-field" id="invite-role">
+          <option value="supporter">Supporter</option>
+          <option value="admin">Admin</option>
+          <option value="head_admin">Head Admin</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm mt-8" onclick="sendInvitation()">Einladung senden</button>
+    </div>
+    <div id="invite-result" class="mt-16"></div>`;
+}
+
+async function sendInvitation() {
+  const email = document.getElementById('invite-email').value;
+  const role = document.getElementById('invite-role').value;
+  if (!email) { showToast('E-Mail nötig', 'error'); return; }
+  const token = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+  try {
+    await dbInsert('admin_invitations', {
+      invited_by: currentUser.id,
+      email, role, token,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    });
+    document.getElementById('invite-result').innerHTML = `
+      <div class="card" style="padding:16px;border-left:4px solid var(--success)">
+        <strong>Einladung erstellt!</strong>
+        <p style="font-size:0.875rem;color:var(--text-secondary);margin:8px 0 0">Link für <strong>${escapeHtml(email)}</strong> (${ROLE_LABELS[role] || role}):</p>
+        <code style="display:block;margin-top:8px;padding:8px;background:var(--bg-tertiary);border-radius:4px;font-size:0.813rem;word-break:break-all">${window.location.origin}/School_Planner_V1/index.html?invite=${token}</code>
+        <button class="btn btn-ghost btn-sm mt-8" onclick="navigator.clipboard.writeText('${window.location.origin}/School_Planner_V1/index.html?invite=${token}');showToast('Kopiert!','success')">Kopieren</button>
+      </div>`;
+    showToast('Einladung erstellt!', 'success');
+  } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
 }

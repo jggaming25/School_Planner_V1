@@ -11,6 +11,8 @@ function renderSettings() {
 
 async function saveProfile() {
   if (!currentUser) return;
+  const btn = document.querySelector('button[onclick="saveProfile()"]');
+  if (btn) { btn.disabled = true; btn.dataset.origText = btn.textContent; btn.textContent = 'Speichern...'; }
   const updates = {
     full_name: document.getElementById('settings-name').value,
     email: document.getElementById('settings-email').value,
@@ -20,10 +22,14 @@ async function saveProfile() {
   };
   try {
     await updateProfile(currentUser.id, updates);
+    if (updates.email && updates.email !== currentUser.email) {
+      try { await _sb.auth.updateUser({ email: updates.email }); } catch (e) { console.warn('Email update:', e.message); }
+    }
     profile = { ...profile, ...updates };
     updateUserUI();
     showToast('Profil gespeichert!', 'success');
   } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
+  if (btn) { btn.disabled = false; btn.textContent = btn.dataset.origText || 'Speichern'; }
 }
 
 async function changePassword() {

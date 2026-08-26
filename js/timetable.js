@@ -7,7 +7,7 @@ let selectedTimetableTeacher = '';
 async function renderTimetable() {
   if (!currentUser) return;
   timetableSchoolSettings = await getSchool(profile.school_id);
-  const isSchulleitung = ['school_admin', 'admin', 'super_admin'].includes(profile.role);
+  const isSchulleitung = ['school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
   const isTeacher = profile.role === 'teacher' || isSchulleitung;
 
   let filterBarHtml = '<div class="flex gap-12 mb-20" style="flex-wrap:wrap;align-items:center">';
@@ -100,8 +100,8 @@ function buildTimetableGrid() {
   const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
   const maxPeriods = getTimetableMaxPeriods();
   const periods = Array.from({ length: maxPeriods }, (_, i) => i + 1);
-  const isEditable = ['teacher', 'school_admin', 'admin', 'super_admin'].includes(profile.role);
-  const isSchulleitung = ['school_admin', 'admin', 'super_admin'].includes(profile.role);
+  const isEditable = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
+  const isSchulleitung = ['school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
 
   let html = '<div class="tt-header"><div class="tt-corner"></div>';
   days.forEach(d => { html += `<div class="tt-day-header">${d}</div>`; });
@@ -152,7 +152,7 @@ function onEmptyCellClick(day, period) {
 function onTimetableCellClick(day, period, entryId) {
   const entry = timetableData.find(t => t.id === entryId);
   if (!entry) return;
-  const isEditable = ['teacher', 'school_admin', 'admin', 'super_admin'].includes(profile.role);
+  const isEditable = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
   if (!isEditable) return;
 
   document.getElementById('tt-day').value = entry.day_of_week;

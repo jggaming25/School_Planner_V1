@@ -13,7 +13,7 @@ async function loadSchoolAdminData() {
 }
 
 function renderSchoolAdmin() {
-  if (!currentProfile || !['school_admin','admin'].includes(currentProfile.role)) return;
+  if (!currentProfile || !['school_admin','admin','supporter','head_admin'].includes(currentProfile.role)) return;
   loadSchoolAdminData().then(() => renderSchoolAdminTab('users'));
 }
 
