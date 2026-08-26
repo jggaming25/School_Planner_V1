@@ -1,4 +1,4 @@
-const CACHE_NAME = 'school-planner-v1';
+const CACHE_NAME = 'school-planner-v2';
 const STATIC_ASSETS = [
   '/School_Planner_V1/app.html',
   '/School_Planner_V1/manifest.json',
@@ -35,6 +35,10 @@ const STATIC_ASSETS = [
   '/School_Planner_V1/js/subjects.js',
   '/School_Planner_V1/js/notifications.js',
   '/School_Planner_V1/js/pwa.js',
+  '/School_Planner_V1/js/attendance.js',
+  '/School_Planner_V1/js/absence-requests.js',
+  '/School_Planner_V1/js/support.js',
+  '/School_Planner_V1/js/announcements.js',
   '/School_Planner_V1/icons/icon-192.svg',
   '/School_Planner_V1/icons/icon-512.svg'
 ];
@@ -60,6 +64,16 @@ self.addEventListener('fetch', event => {
   if (url.hostname.includes('supabase')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
+    );
+  } else if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
     );
   } else {
     event.respondWith(
