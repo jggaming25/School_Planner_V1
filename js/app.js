@@ -3,6 +3,7 @@ let subjects = [];
 let schoolClasses = [];
 let schoolModules = {};
 let currentPage = 'dashboard';
+let allSchoolUsers = [];
 
 const ROLE_LABELS = { ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
 const SYSTEM_ROLES = ['ceo','head_admin','admin','supporter'];
@@ -19,8 +20,7 @@ async function initApp() {
   }
   updateUserUI();
   if (profile.school_id) {
-    await loadAllData();
-    await loadSchoolSettings();
+    await Promise.all([loadAllData(), loadAllSchoolUsers(), loadSchoolSettings()]);
     applyModuleVisibility();
   }
   checkAnnouncements();
@@ -83,14 +83,21 @@ function updateUserUI() {
   document.getElementById('user-role').textContent = `${ROLE_LABELS[profile.role] || ''} ${profile.class_name ? '· ' + profile.class_name : ''}`;
 
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.school-admin-only').forEach(el => el.style.display = ['school_admin','admin','supporter','head_admin'].includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.student-only').forEach(el => {
-    el.style.display = ['student','teacher','school_admin'].includes(profile.role) ? '' : 'none';
+  document.querySelectorAll('.school-admin-only').forEach(el => {
+    const canManage = profile.role === 'school_admin' || (SYSTEM_ROLES.includes(profile.role) && !!profile.school_id);
+    el.style.display = canManage ? '' : 'none';
   });
+  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) || SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.student-only').forEach(el => el.style.display = profile.role ? '' : 'none');
   document.querySelectorAll('.has-school').forEach(el => {
     el.style.display = profile.school_id ? '' : 'none';
   });
+}
+
+async function loadAllSchoolUsers() {
+  if (!profile?.school_id) { allSchoolUsers = []; return; }
+  const users = await dbGet('profiles', { school_id: profile.school_id });
+  allSchoolUsers = users || [];
 }
 
 async function loadAllData() {
@@ -106,6 +113,41 @@ async function loadAllData() {
     const badge = document.getElementById('admin-badge');
     if (badge) { badge.textContent = pending.length; badge.style.display = pending.length > 0 ? 'inline' : 'none'; }
   }
+}
+
+function renderSubjectSelects() {
+  const selects = ['tt-subject', 'hw-subject', 'gr-subject', 'ex-subject'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Fach wählen...</option>' +
+      subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  });
+  const classSelects = ['hw-class', 'ex-class'];
+  classSelects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Klasse wählen...</option>' +
+      schoolClasses.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  });
+  const grStudent = document.getElementById('gr-student');
+  if (grStudent) {
+    if (profile.role === 'student') {
+      grStudent.innerHTML = `<option value="${currentUser.id}">${escapeHtml(profile.full_name)} (ich)</option>`;
+    } else {
+      const students = allSchoolUsers.filter(u => u.role === 'student');
+      grStudent.innerHTML = '<option value="">Schüler wählen...</option>' +
+        students.map(s => `<option value="${s.id}">${escapeHtml(s.full_name)} (${escapeHtml(s.class_name || '')})</option>`).join('');
+    }
+  }
+}
+
+function renderUserSelectOptions(selectId, filterFn, placeholder) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  const filtered = filterFn ? allSchoolUsers.filter(filterFn) : allSchoolUsers;
+  el.innerHTML = `<option value="">${placeholder || 'Person wählen...'}</option>` +
+    filtered.map(u => `<option value="${u.id}">${escapeHtml(u.full_name)} (${ROLE_LABELS[u.role] || u.role}${u.class_name ? ', ' + u.class_name : ''})</option>`).join('');
 }
 
 function applyModuleVisibility() {

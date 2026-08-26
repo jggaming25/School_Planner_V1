@@ -257,8 +257,9 @@ function openCreateClassModal() {
   document.getElementById('create-class-grade').innerHTML = '<option value="">Keine</option>' +
     Array.from({length: 13}, (_, i) => `<option value="${i}">${i}. Klasse</option>`).join('');
   const teacherSelect = document.getElementById('create-class-teacher');
+  const staff = schoolUsers.filter(u => ['teacher','school_admin'].includes(u.role));
   teacherSelect.innerHTML = '<option value="">Keiner</option>' +
-    schoolUsers.filter(u => u.role === 'teacher').map(u => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join('');
+    staff.map(u => `<option value="${u.id}">${escapeHtml(u.full_name)} (${ROLE_LABELS[u.role] || u.role})</option>`).join('');
   openModal('create-class-modal');
 }
 

@@ -49,9 +49,7 @@ async function renderSubstitution() {
 }
 
 async function loadSubstitutionProfiles() {
-  const teachers = await dbGet('profiles', { school_id: profile.school_id, role: 'teacher' });
-  const admins = await dbGet('profiles', { school_id: profile.school_id, role: 'school_admin' });
-  allSchoolProfiles = [...teachers, ...admins];
+  allSchoolProfiles = allSchoolUsers.filter(u => ['teacher','school_admin'].includes(u.role));
 }
 
 function onSubDateChange(val) {

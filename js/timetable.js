@@ -51,14 +51,12 @@ async function renderTimetable() {
 }
 
 async function loadTeacherListForTimetable() {
-  const teachers = await dbGet('profiles', { school_id: profile.school_id, role: 'teacher' });
-  const admins = await dbGet('profiles', { school_id: profile.school_id, role: 'school_admin' });
-  const allTeachers = [...teachers, ...admins];
+  const staff = allSchoolUsers.filter(u => ['teacher','school_admin'].includes(u.role));
   const sel = document.getElementById('tt-teacher-select');
   if (!sel) return;
   const currentVal = selectedTimetableTeacher;
   sel.innerHTML = '<option value="">Alle Lehrer</option>' +
-    allTeachers.map(t => `<option value="${escapeHtml(t.full_name)}" ${currentVal === t.full_name ? 'selected' : ''}>${escapeHtml(t.full_name)}</option>`).join('');
+    staff.map(t => `<option value="${escapeHtml(t.full_name)}" ${currentVal === t.full_name ? 'selected' : ''}>${escapeHtml(t.full_name)}</option>`).join('');
 }
 
 function onTimetableClassChange(val) {
