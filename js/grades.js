@@ -36,7 +36,7 @@ const WEIGHT_LABELS = { 1: 'Normal', 2: 'Halbe Klausur', 3: 'Klausur', 4: 'Abi/B
 async function renderGrades() {
   if (!currentUser) return;
 
-  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
+  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role);
 
   renderGradeClassSelector();
   renderGradeViewTabs();
@@ -57,7 +57,7 @@ async function renderGrades() {
 }
 
 function renderGradeViewTabs() {
-  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
+  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role);
   const tabsEl = document.getElementById('grade-view-tabs');
   if (!tabsEl) return;
   if (isTeacherRole) {
@@ -79,7 +79,7 @@ function switchGradeView(view) {
 function renderGradeClassSelector() {
   const el = document.getElementById('grade-class-selector');
   if (!el) return;
-  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
+  const isTeacherRole = ['teacher', 'school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role);
   if (!isTeacherRole) { el.innerHTML = ''; return; }
   el.innerHTML = `<select class="input-field" style="max-width:200px" onchange="selectGradeClass(this.value)">
     <option value="">Klasse wählen...</option>

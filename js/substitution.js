@@ -8,7 +8,7 @@ let allSchoolProfiles = [];
 
 async function renderSubstitution() {
   if (!currentUser) return;
-  const isSchulleitung = ['school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role);
+  const isSchulleitung = ['school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role);
   substitutionSchoolSettings = await getSchool(profile.school_id);
 
   let filterBarHtml = '';

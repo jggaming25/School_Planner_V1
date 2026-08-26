@@ -15,7 +15,7 @@ async function renderAttendance() {
     return;
   }
 
-  if (['school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role)) {
+  if (['school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role)) {
     renderAdminAttendance();
     return;
   }
@@ -29,7 +29,7 @@ function renderTeacherAttendance() {
 
   const teacherClasses = schoolClasses.filter(c =>
     c.class_teacher_id === currentUser.id ||
-    ['school_admin', 'admin', 'supporter', 'head_admin', 'ceo'].includes(profile.role)
+    ['school_admin', 'admin', 'supporter', 'head_admin', 'super_admin', 'ceo'].includes(profile.role)
   );
 
   if (!attendanceSelectedClass && teacherClasses.length > 0) {

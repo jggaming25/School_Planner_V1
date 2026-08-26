@@ -5,8 +5,8 @@ let schoolModules = {};
 let currentPage = 'dashboard';
 let allSchoolUsers = [];
 
-const ROLE_LABELS = { ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
-const SYSTEM_ROLES = ['ceo','head_admin','admin','supporter'];
+const ROLE_LABELS = { super_admin: 'CEO', ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
+const SYSTEM_ROLES = ['super_admin','ceo','head_admin','admin','supporter'];
 const STAFF_ROLES = [...SYSTEM_ROLES, 'school_admin','teacher'];
 
 async function initApp() {
@@ -75,6 +75,10 @@ async function completeSetup() {
   }
 }
 
+function hasSchool() {
+  return profile && profile.school_id && typeof profile.school_id === 'string' && profile.school_id.length === 36;
+}
+
 function updateUserUI() {
   if (!profile) return;
   const initials = profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
@@ -83,7 +87,7 @@ function updateUserUI() {
   const roleText = ROLE_LABELS[profile.role] || profile.role;
   const classText = profile.class_name ? ' · ' + profile.class_name : '';
   document.getElementById('user-role').textContent = roleText + classText;
-  if (profile.school_id) {
+  if (hasSchool()) {
     getSchool(profile.school_id).then(school => {
       if (school) {
         const roleEl = document.getElementById('user-role');
@@ -92,15 +96,16 @@ function updateUserUI() {
     });
   }
 
+  const inSchool = hasSchool();
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.school-admin-only').forEach(el => {
-    const canManage = profile.role === 'school_admin' || (SYSTEM_ROLES.includes(profile.role) && !!profile.school_id);
+    const canManage = profile.role === 'school_admin' || (SYSTEM_ROLES.includes(profile.role) && inSchool);
     el.style.display = canManage ? '' : 'none';
   });
   document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) || SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
   document.querySelectorAll('.student-only').forEach(el => el.style.display = profile.role ? '' : 'none');
   document.querySelectorAll('.has-school').forEach(el => {
-    el.style.display = profile.school_id ? '' : 'none';
+    el.style.display = inSchool ? '' : 'none';
   });
 }
 
@@ -225,7 +230,7 @@ function navigateTo(page) {
 
 function renderPage(page) {
   const schoolPages = ['dashboard','timetable','homework','grades','exams','tests','calendar','subjects','substitution','messages','attendance','absences'];
-  if (schoolPages.includes(page) && !profile.school_id) {
+  if (schoolPages.includes(page) && !hasSchool()) {
     const el = document.getElementById('page-' + page);
     if (el) {
       const body = el.querySelector('.page-body');

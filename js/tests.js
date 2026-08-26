@@ -12,7 +12,7 @@ function renderTests() {
     if (!el) return;
     const myTests = testsData.filter(t => t.teacher_id === currentUser.id);
     const mySubmissions = testsData.filter(t => currentProfile.role === 'student');
-    if (currentProfile.role === 'teacher' || ['school_admin','admin','supporter','head_admin','ceo'].includes(currentProfile.role)) {
+    if (currentProfile.role === 'teacher' || ['school_admin','admin','supporter','head_admin','super_admin','ceo'].includes(currentProfile.role)) {
       renderTeacherTests(el, myTests);
     } else {
       renderStudentTests(el);

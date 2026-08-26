@@ -5,8 +5,8 @@ let adminAllSchools = [];
 let adminCurrentTab = 'requests';
 let adminAnnouncements = [];
 
-const adminRoleLabels = { ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
-const adminRoleBadges = { ceo: 'badge-red', head_admin: 'badge-red', admin: 'badge-orange', supporter: 'badge-blue', school_admin: 'badge-orange', teacher: 'badge-blue', student: 'badge-green' };
+const adminRoleLabels = { super_admin: 'CEO', ceo: 'CEO', head_admin: 'Head Admin', admin: 'Admin', supporter: 'Supporter', school_admin: 'Schulleiter', teacher: 'Lehrer', student: 'Schüler' };
+const adminRoleBadges = { super_admin: 'badge-red', ceo: 'badge-red', head_admin: 'badge-red', admin: 'badge-orange', supporter: 'badge-blue', school_admin: 'badge-orange', teacher: 'badge-blue', student: 'badge-green' };
 
 async function loadAdminData() {
   if (!currentProfile || !SYSTEM_ROLES.includes(currentProfile.role)) return;
