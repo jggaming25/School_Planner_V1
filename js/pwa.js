@@ -2,7 +2,21 @@ let deferredPrompt = null;
 
 function initPWA() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/School_Planner_V1/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/School_Planner_V1/sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'activated') {
+            caches.keys().then(keys => {
+              keys.filter(k => k !== 'school-planner-v2').forEach(k => caches.delete(k));
+            });
+          }
+        });
+      });
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    }).catch(() => {});
   }
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
