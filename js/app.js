@@ -97,15 +97,15 @@ function updateUserUI() {
   }
 
   const inSchool = hasSchool();
-  document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = SYSTEM_ROLES.includes(profile.role) ? 'block' : 'none');
   document.querySelectorAll('.school-admin-only').forEach(el => {
     const canManage = profile.role === 'school_admin' || (SYSTEM_ROLES.includes(profile.role) && inSchool);
-    el.style.display = canManage ? '' : 'none';
+    el.style.display = canManage ? 'block' : 'none';
   });
-  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) || SYSTEM_ROLES.includes(profile.role) ? '' : 'none');
-  document.querySelectorAll('.student-only').forEach(el => el.style.display = profile.role ? '' : 'none');
+  document.querySelectorAll('.teacher-only').forEach(el => el.style.display = ['teacher','school_admin'].includes(profile.role) || SYSTEM_ROLES.includes(profile.role) ? 'block' : 'none');
+  document.querySelectorAll('.student-only').forEach(el => el.style.display = profile.role ? 'block' : 'none');
   document.querySelectorAll('.has-school').forEach(el => {
-    el.style.display = inSchool ? '' : 'none';
+    el.style.display = inSchool ? 'block' : 'none';
   });
 }
 
@@ -171,7 +171,7 @@ function applyModuleVisibility() {
     if (school?.modules) {
       schoolModules = school.modules;
       Object.entries(schoolModules).forEach(([key, enabled]) => {
-        document.querySelectorAll('.mod-' + key).forEach(el => el.style.display = enabled ? '' : 'none');
+        document.querySelectorAll('.mod-' + key).forEach(el => el.style.display = enabled ? 'block' : 'none');
       });
     }
   });
