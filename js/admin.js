@@ -474,6 +474,16 @@ async function saveAnnouncement() {
     for (const u of targetUsers) {
       logAnnouncementEmail(ann.id, u.email, `Wartungsmeldung: ${title}`, `Hallo ${u.full_name || 'Nutzer'},\n\n${message}\n\n— School Planner Admin`);
     }
+    const systemTargetUsers = targetUsers.filter(u => SYSTEM_ROLES.includes(u.role));
+    for (const u of systemTargetUsers) {
+      await dbInsert('notifications', {
+        user_id: u.id,
+        title: 'Wartungsmeldung: ' + title,
+        message: message,
+        type: 'announcement',
+        read: false
+      });
+    }
     showToast(`Meldung gesendet! (${targetUsers.length} Empfänger benachrichtigt)`, 'success');
     await loadAdminData();
     renderAnnouncementsSection(document.getElementById('admin-tab-content'));
