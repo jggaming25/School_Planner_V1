@@ -3,11 +3,13 @@
 -- Run AFTER 002_features.sql
 -- ============================================
 
--- 1. Bestehende Rollen migrieren (super_admin -> ceo)
+-- 1. Alte Rollen-Einschränkung entfernen
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+-- 2. Bestehende Rollen migrieren (super_admin -> ceo)
 UPDATE profiles SET role = 'ceo' WHERE role = 'super_admin';
 
--- 2. Erweiterte Rollen
-ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+-- 3. Neue erweiterte Rollen
 ALTER TABLE profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('ceo','head_admin','admin','supporter','school_admin','teacher','student'));
 
 -- 2. Support-Tickets
