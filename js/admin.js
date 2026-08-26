@@ -441,6 +441,7 @@ function showCreateAnnouncement() {
       <div class="input-group"><label>Nachricht</label><textarea class="input-field" id="ann-message" rows="3" placeholder="Meldungstext..."></textarea></div>
       <div class="input-group"><label>Zielgruppe</label>
         <div class="flex gap-12" style="flex-wrap:wrap;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-ad" checked> Admins</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-sa" checked> Schulleitungen</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-te" checked> Lehrkräfte</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem"><input type="checkbox" id="ann-target-st" checked> Schüler</label>
@@ -458,6 +459,7 @@ async function saveAnnouncement() {
   const message = document.getElementById('ann-message').value;
   if (!title || !message) { showToast('Titel und Nachricht nötig', 'error'); return; }
   const targetRoles = [];
+  if (document.getElementById('ann-target-ad').checked) targetRoles.push(...SYSTEM_ROLES);
   if (document.getElementById('ann-target-sa').checked) targetRoles.push('school_admin');
   if (document.getElementById('ann-target-te').checked) targetRoles.push('teacher');
   if (document.getElementById('ann-target-st').checked) targetRoles.push('student');
