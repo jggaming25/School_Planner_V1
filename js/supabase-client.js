@@ -203,24 +203,37 @@ async function resendSecurityEmail(email) {
   return { success: true, message: 'Sicherheits-E-Mail wurde erneut gesendet.' };
 }
 
-// === Email delivery ===
+// === Email delivery (EmailJS) ===
+
+const EMAILJS_SERVICE_ID = 'service_wzml9um';
+const EMAILJS_TEMPLATE_ID = 'template_d8wmwdb';
+const EMAILJS_PUBLIC_KEY = 'ZqqsIdnxHVxsArygb';
+
+let emailjsReady = false;
+
+function initEmailJS() {
+  if (typeof emailjs !== 'undefined' && !emailjsReady) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY, blockHeadless: false });
+    emailjsReady = true;
+    return true;
+  }
+  return typeof emailjs !== 'undefined';
+}
 
 async function sendEmail(to, subject, text) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({ to, subject, text })
+    if (!initEmailJS()) throw new Error('EmailJS nicht geladen');
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: to,
+      subject: subject,
+      message: text
     });
-    if (res.ok) {
-      await logEmail(to, subject, text);
-      return { success: true };
-    }
     await logEmail(to, subject, text);
-    return { success: false, message: (await res.json().catch(() => ({}))).error || 'Senden fehlgeschlagen' };
+    return { success: true };
   } catch (err) {
     await logEmail(to, subject, text);
-    return { success: false, message: err.message };
+    console.error('Email senden fehlgeschlagen:', err);
+    return { success: false, message: (err && err.text) ? err.text : (err.message || 'Senden fehlgeschlagen') };
   }
 }
 
