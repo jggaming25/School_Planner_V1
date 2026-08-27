@@ -1,0 +1,5 @@
+[project]
+ref_id = "tkatqbppvgrmupuacgxc"
+
+[functions.send-email]
+verify_jwt = false

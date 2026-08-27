@@ -142,12 +142,7 @@ async function incrementFailedLogin(email) {
       event_type: 'account_locked',
       metadata: { user_name: profile?.full_name || norm, unlock_token: unlockToken, reason: '3 fehlgeschlagene Login-Versuche' }
     });
-    await dbInsert('email_log', {
-      recipient_email: norm,
-      subject: 'Account gesperrt – Sicherheitswarnung',
-      body: `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account wurde nach 3 fehlgeschlagenen Login-Versuchen gesperrt.\nGrund: Sicherheitssperre aktiv\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.\nFalls du diese Sitzung nicht initiiert hast, ändere dein Passwort umgehend.`,
-      event_type: 'account_locked'
-    });
+    await sendEmail(norm, 'Account gesperrt – Sicherheitswarnung', `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account wurde nach 3 fehlgeschlagenen Login-Versuchen gesperrt.\nGrund: Sicherheitssperre aktiv\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.\nFalls du diese Sitzung nicht initiiert hast, ändere dein Passwort umgehend.`);
   }
   return { attempts, locked: shouldLock, unlockToken: shouldLock ? unlockToken : null };
 }
@@ -177,12 +172,7 @@ async function resendSecurityEmail(email) {
   const unlockToken = sec.unlock_token || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2));
   if (!sec.locked_until || new Date(sec.locked_until) <= new Date()) return { success: false, message: 'Account ist nicht gesperrt.' };
   const profile = (await _sb.from('profiles').select('full_name').eq('email', norm).limit(1)).data?.[0];
-  await dbInsert('email_log', {
-    recipient_email: norm,
-    subject: 'Account entsperren – Erinnerung',
-    body: `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account ist noch gesperrt.\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.`,
-    event_type: 'security_reminder'
-  });
+  await sendEmail(norm, 'Account entsperren – Erinnerung', `Hallo ${profile?.full_name || 'Nutzer'},\n\nDein Account ist noch gesperrt.\nEntsperr-Link: ${window.location.origin}/School_Planner_V1/index.html?unlock=${unlockToken}\n\nDie Sperrung wird automatisch nach 48 Stunden aufgehoben.`);
   await _sb.from('security_events').insert({
     email: norm,
     event_type: 'security_email_resent',
@@ -191,11 +181,40 @@ async function resendSecurityEmail(email) {
   return { success: true, message: 'Sicherheits-E-Mail wurde erneut gesendet.' };
 }
 
+// === Email delivery ===
+
+async function sendEmail(to, subject, text) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ to, subject, text })
+    });
+    if (res.ok) {
+      await logEmail(to, subject, text);
+      return { success: true };
+    }
+    await logEmail(to, subject, text);
+    return { success: false, message: (await res.json().catch(() => ({}))).error || 'Senden fehlgeschlagen' };
+  } catch (err) {
+    await logEmail(to, subject, text);
+    return { success: false, message: err.message };
+  }
+}
+
+async function logEmail(to, subject, text) {
+  try {
+    await dbInsert('email_log', { recipient_email: to, subject, body: text, event_type: 'email' });
+  } catch (e) { console.error('logEmail error:', e); }
+}
+
 async function logAnnouncementEmail(announcementId, recipientEmail, subject, body) {
-  await dbInsert('email_log', {
-    recipient_email: recipientEmail,
-    subject,
-    body,
-    event_type: 'announcement'
-  });
+  try {
+    await dbInsert('email_log', {
+      recipient_email: recipientEmail,
+      subject,
+      body,
+      event_type: 'announcement'
+    });
+  } catch (e) { console.error('logAnnouncementEmail error:', e); }
 }

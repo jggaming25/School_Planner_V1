@@ -415,7 +415,12 @@ function renderAnnouncementsSection(el) {
       <div class="card mb-12" style="padding:16px;border-left:4px solid var(--warning)">
         <div class="flex-between mb-8">
           <strong>${escapeHtml(a.title)}</strong>
-          <button class="btn btn-danger btn-sm" onclick="toggleAnnouncement('${a.id}', false)">Deaktivieren</button>
+          <div class="flex gap-4">
+            <button class="btn btn-ghost btn-sm" onclick="toggleAnnouncement('${a.id}', false)">Deaktivieren</button>
+            <button class="btn btn-ghost btn-sm" onclick="deleteAnnouncement('${a.id}', '${escapeHtml(a.title)}')" title="Löschen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
         </div>
         <p style="font-size:0.875rem;color:var(--text-secondary);margin:0">${escapeHtml(a.message)}</p>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">Ziel: ${(a.target_roles || []).join(', ')} · Erstellt: ${formatDate(a.created_at)}</div>
@@ -425,7 +430,10 @@ function renderAnnouncementsSection(el) {
       <div class="card mb-12" style="padding:16px;opacity:0.6">
         <div class="flex-between mb-8">
           <strong>${escapeHtml(a.title)}</strong>
-          <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncement('${a.id}', true)">Aktivieren</button>
+          <div class="flex gap-4">
+            <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncement('${a.id}', true)">Aktivieren</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${a.id}', '${escapeHtml(a.title)}')">Löschen</button>
+          </div>
         </div>
         <p style="font-size:0.875rem;color:var(--text-secondary);margin:0">${escapeHtml(a.message)}</p>
       </div>
@@ -470,21 +478,24 @@ async function saveAnnouncement() {
       is_active: true,
       target_roles: targetRoles
     });
-    const targetUsers = adminAllUsers.filter(u => targetRoles.includes(u.role) && u.email);
-    for (const u of targetUsers) {
-      logAnnouncementEmail(ann.id, u.email, `Wartungsmeldung: ${title}`, `Hallo ${u.full_name || 'Nutzer'},\n\n${message}\n\n— School Planner Admin`);
+    const { data: allUsers } = await _sb.from('profiles').select('id, full_name, email, role');
+    const users = allUsers || adminAllUsers;
+    const targetUsers = users.filter(u => targetRoles.includes(u.role) && u.email);
+    const uniqueTargets = [...new Map(targetUsers.map(u => [u.email, u])).values()];
+    for (const u of uniqueTargets) {
+      sendEmail(u.email, `Wartungsmeldung: ${title}`, `Hallo ${u.full_name || 'Nutzer'},\n\n${message}\n\n— School Planner`);
     }
-    const systemTargetUsers = targetUsers.filter(u => SYSTEM_ROLES.includes(u.role) || u.role === 'school_admin');
+    const systemTargetUsers = uniqueTargets.filter(u => SYSTEM_ROLES.includes(u.role) || u.role === 'school_admin' || u.role === 'teacher' || u.role === 'student');
     for (const u of systemTargetUsers) {
-      await dbInsert('notifications', {
+      dbInsert('notifications', {
         user_id: u.id,
         title: 'Wartungsmeldung: ' + title,
         message: message,
         type: 'announcement',
         read: false
-      });
+      }).catch(() => {});
     }
-    showToast(`Meldung gesendet! (${targetUsers.length} Empfänger benachrichtigt)`, 'success');
+    showToast(`Meldung gesendet! (${uniqueTargets.length} Empfänger benachrichtigt)`, 'success');
     await loadAdminData();
     renderAnnouncementsSection(document.getElementById('admin-tab-content'));
   } catch (err) { showToast('Fehler: ' + err.message, 'error'); }
@@ -495,6 +506,18 @@ async function toggleAnnouncement(id, active) {
   showToast(active ? 'Meldung aktiviert' : 'Meldung deaktiviert', 'success');
   await loadAdminData();
   renderAnnouncementsSection(document.getElementById('admin-tab-content'));
+}
+
+async function deleteAnnouncement(id, title) {
+  if (!confirm(`Wartungsmeldung "${title}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`)) return;
+  try {
+    await _sb.from('announcements').delete().eq('id', id);
+    showToast('Meldung gelöscht', 'success');
+    await loadAdminData();
+    renderAnnouncementsSection(document.getElementById('admin-tab-content'));
+  } catch (err) {
+    showToast('Fehler: ' + err.message, 'error');
+  }
 }
 
 function renderInviteSection(el) {
