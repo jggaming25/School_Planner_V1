@@ -47,6 +47,28 @@ async function signOut() {
   window.location.href = 'index.html';
 }
 
+async function sendPasswordResetEmail(email) {
+  const redirectTo = window.location.origin + '/School_Planner_V1/index.html?recovery=true';
+  const { data, error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw error;
+  return data;
+}
+
+async function setNewPassword(password) {
+  const { data, error } = await _sb.auth.updateUser({ password });
+  if (error) throw error;
+  return data;
+}
+
+async function confirmRecoverySession() {
+  await _sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) return false;
+  const { data, error } = await _sb.auth.getUser();
+  if (error) return false;
+  return true;
+}
+
 async function getProfile(userId) {
   const { data, error } = await _sb
     .from('profiles').select('*').eq('id', userId).single();

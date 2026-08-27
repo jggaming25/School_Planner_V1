@@ -70,6 +70,27 @@
           <div class="input-group"><label>E-Mail</label><input type="email" id="login-email" class="input-field" placeholder="name@schule.de" required></div>
           <div class="input-group"><label>Passwort</label><input type="password" id="login-password" class="input-field" placeholder="Passwort" required></div>
           <button type="submit" class="btn btn-primary" id="login-btn">Anmelden</button>
+          <p style="text-align:center;margin-top:14px;font-size:0.813rem">
+            <a href="#" onclick="showForgotPassword();return false" style="color:var(--text-secondary);text-decoration:underline">Passwort vergessen?</a>
+          </p>
+        </form>
+
+        <!-- Passwort zurücksetzen -->
+        <form id="forgot-form" class="auth-form" onsubmit="handleForgotPassword(event)">
+          <p style="font-size:0.813rem;color:var(--text-secondary);margin-bottom:16px">Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts.</p>
+          <div class="input-group"><label>E-Mail</label><input type="email" id="forgot-email" class="input-field" placeholder="name@schule.de" required></div>
+          <button type="submit" class="btn btn-primary" id="forgot-btn">Link senden</button>
+          <p style="text-align:center;margin-top:14px;font-size:0.813rem">
+            <a href="#" onclick="switchTab('login');return false" style="color:var(--text-secondary);text-decoration:underline">Zurück zur Anmeldung</a>
+          </p>
+        </form>
+
+        <!-- Neues Passwort setzen (nach Klick auf E-Mail-Link) -->
+        <form id="recovery-form" class="auth-form" onsubmit="handleNewPassword(event)">
+          <p style="font-size:0.813rem;color:var(--text-secondary);margin-bottom:16px">Lege dein neues Passwort fest.</p>
+          <div class="input-group"><label>Neues Passwort</label><input type="password" id="new-password" class="input-field" placeholder="Min. 6 Zeichen" required></div>
+          <div class="input-group"><label>Passwort wiederholen</label><input type="password" id="new-password-repeat" class="input-field" placeholder="Wiederholen" required></div>
+          <button type="submit" class="btn btn-primary" id="recovery-btn">Passwort speichern</button>
         </form>
 
         <!-- Schule anmelden -->
@@ -125,6 +146,45 @@
       const tabs = { login: 0, register: 1, code: 2 };
       document.querySelectorAll('.auth-tab')[tabs[tab]].classList.add('active');
       document.getElementById(tab + '-form').classList.add('active');
+    }
+
+    function showForgotPassword() {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      hideMessages();
+      document.getElementById('forgot-form').classList.add('active');
+    }
+
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+      if (!email) { showError('Bitte gib deine E-Mail ein.'); return; }
+      const btn = document.getElementById('forgot-btn');
+      btn.textContent = 'Wird gesendet...'; btn.disabled = true;
+      try {
+        await sendPasswordResetEmail(email);
+        showSuccess('Ein Zurücksetz-Link wurde an ' + email + ' gesendet. Bitte prüfe dein E-Mail-Postfach.');
+      } catch (err) {
+        showError(err.message.includes('rate') ? 'Zu viele Anfragen. Bitte warte etwas und versuche es erneut.' : 'Fehler: ' + err.message);
+      } finally { btn.textContent = 'Link senden'; btn.disabled = false; }
+    }
+
+    async function handleNewPassword(e) {
+      e.preventDefault();
+      const pw = document.getElementById('new-password').value;
+      const pw2 = document.getElementById('new-password-repeat').value;
+      if (pw.length < 6) { showError('Passwort muss mindestens 6 Zeichen lang sein.'); return; }
+      if (pw !== pw2) { showError('Die Passwörter stimmen nicht überein.'); return; }
+      const btn = document.getElementById('recovery-btn');
+      btn.textContent = 'Wird gespeichert...'; btn.disabled = true;
+      try {
+        await setNewPassword(pw);
+        showSuccess('Passwort gespeichert! Du wirst weitergeleitet...');
+        setTimeout(() => { window.location.href = 'app.html'; }, 1200);
+      } catch (err) {
+        showError('Fehler: ' + err.message);
+        btn.textContent = 'Passwort speichern'; btn.disabled = false;
+      }
     }
 
     function showError(msg) { const e=document.getElementById('auth-error'); e.textContent=msg; e.classList.add('visible'); document.getElementById('auth-success').classList.remove('visible'); }
@@ -256,6 +316,20 @@
           showError(result.message);
           window.history.replaceState({}, '', window.location.pathname);
         }
+      }
+      const isRecovery = params.get('recovery') === 'true';
+      if (isRecovery) {
+        const ok = await confirmRecoverySession();
+        if (ok) {
+          document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+          hideMessages();
+          document.getElementById('recovery-form').classList.add('active');
+        } else {
+          showError('Ungültiger oder abgelaufener Link. Bitte fordere einen neuen an.');
+          showForgotPassword();
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
       }
       const user = await initAuth();
       if (user && currentProfile) window.location.href = 'app.html';
